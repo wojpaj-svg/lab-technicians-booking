@@ -130,6 +130,16 @@
       margin-top: 6px;
       margin-bottom: 8px;
     }
+     .slot-row {
+      display: flex;
+      gap: 2px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .slot-row .pill {
+      flex: 1 1 0;
+      min-width: 0;
+    }
     label {
       font-size: 11px;
       color: var(--text-muted);
@@ -507,7 +517,7 @@
       return "stefanija";
     }
 
-    function renderCalendar() {
+        function renderCalendar() {
       calendarGridEl.innerHTML = "";
 
       const firstDay = new Date(currentYear, currentMonth, 1);
@@ -546,6 +556,7 @@
         const endOfDay = new Date(dateObj);
         endOfDay.setHours(23, 59, 59, 999);
 
+        // wybieramy i sortujemy bookingi dla danego dnia
         const dayBookings = bookings
           .filter((b) => {
             const s = b.start.toDate();
@@ -561,12 +572,27 @@
             return ea - eb;
           });
 
+        // GRUPOWANIE po tym samym przedziale czasu,
+        // żeby kapsułki z identycznymi godzinami były w jednym rzędzie
+        let lastKey = null;
+        let currentRow = null;
+
         dayBookings.forEach((b) => {
+          const s = b.start.toDate();
+          const e = b.end.toDate();
+
+          const key = `${s.getTime()}-${e.getTime()}`;
+          if (key !== lastKey) {
+            // nowy rząd dla nowego przedziału czasu
+            currentRow = document.createElement("div");
+            currentRow.className = "slot-row";
+            cell.appendChild(currentRow);
+            lastKey = key;
+          }
+
           const pill = document.createElement("div");
           pill.className = "pill " + technicianClass(b.technician);
 
-          const s = b.start.toDate();
-          const e = b.end.toDate();
           const timeLabel = sameDay(s, e)
             ? `${s.toLocaleTimeString([], {
                 hour: "2-digit",
@@ -609,7 +635,7 @@
             }
           });
 
-          cell.appendChild(pill);
+          currentRow.appendChild(pill);
         });
 
         calendarGridEl.appendChild(cell);
@@ -624,6 +650,7 @@
       );
       monthTitleEl.textContent = monthName;
     }
+
 
     function renderBookingsList() {
       if (!bookings.length) {
@@ -847,3 +874,4 @@
   </script>
 </body>
 </html>
+
