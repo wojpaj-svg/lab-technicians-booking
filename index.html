@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Technician booking (shared)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card-bg: #ffffff;
+      --accent: #0099ff;
+      --text: #20262e;
+      --muted: #6c7a89;
+      --border: #dde3f0;
+      --danger: #e74c3c;
+      --pill-radius: 999px;
+      --day-height: 280px;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px 28px 32px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h1::before {
+      content: "●";
+      color: var(--accent);
+      font-size: 16px;
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .top-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    label {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    input[type="text"],
+    select,
+    input[type="datetime-local"],
+    textarea {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      font-size: 13px;
+      min-width: 180px;
+      outline: none;
+      background: #fafbff;
+    }
+
+    input[type="datetime-local"] {
+      min-width: 200px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(0, 153, 255, 0.15);
+      background: #ffffff;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 40px;
+      max-height: 120px;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 20px;
+      align-items: flex-end;
+      margin-bottom: 18px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 9px 18px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 8px 18px rgba(0, 153, 255, 0.25);
+    }
+
+    .btn-ghost {
+      background: #f2f4fb;
+      color: var(--muted);
+    }
+
+    .btn-small {
+      padding: 4px 10px;
+      font-size: 11px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #f5f7ff;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+    }
+
+    .error {
+      font-size: 12px;
+      color: var(--danger);
+      margin-bottom: 10px;
+      min-height: 16px;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 6px 2px 10px;
+    }
+
+    .month-label {
+      font-weight: 600;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .nav-btn {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      background: white;
+    }
+
+    .nav-btn-primary {
+      padding: 6px 12px;
+      width: auto;
+      background: #eef4ff;
+      border-color: #d0ddff;
+      color: #335acb;
+      font-size: 12px;
+    }
+
+    table.calendar {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 12px;
+    }
+
+    .calendar th {
+      padding: 6px 4px;
+      font-weight: 500;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .calendar td {
+      border: 1px solid #edf0fa;
+      vertical-align: top;
+      background: #fbfcff;
+      padding: 2px 2px 0;
+      position: relative;
+      height: var(--day-height);
+    }
+
+    .day-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      padding: 2px 2px 6px;
+    }
+
+    .day-number {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .slots {
+      position: relative;
+      width: 100%;
+      height: calc(100% - 14px);
+      border-radius: 10px;
+      background: #f8f9ff;
+      overflow: hidden;
+    }
+
+    .booking-pill {
+      position: absolute;
+      border-radius: var(--pill-radius);
+      font-size: 11px;
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #fff;
+      cursor: pointer;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    /* colors per technician */
+    .tech-Sasi {
+      background: #27ae60;
+    }
+
+    .tech-Viviana {
+      background: #9b59b6;
+    }
+
+    .tech-Simon {
+      background: #3498db;
+    }
+
+    .tech-Lara {
+      background: #e67e22;
+    }
+
+    .tech-Stefanija {
+      background: #f1c40f;
+      color: #513b00;
+    }
+
+    .today-cell {
+      box-shadow: inset 0 0 0 2px #ffb74d;
+    }
+
+    .bookings-list {
+      margin-top: 22px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    .bookings-list h2 {
+      font-size: 14px;
+      margin: 0 0 8px;
+    }
+
+    .booking-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 230px) 120px minmax(150px, 1fr) 70px;
+      gap: 10px;
+      font-size: 12px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      align-items: center;
+    }
+
+    .booking-row:nth-child(odd) {
+      background: #f7f8ff;
+    }
+
+    .booking-row-meta {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .booking-row-actions {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    @media (max-width: 800px) {
+      .controls-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .booking-row {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Technician booking (shared)</h1>
+    <p class="subtitle">
+      Monthly view, color = technician. Data stored in Firestore (shared).
+    </p>
+
+    <div class="top-row">
+      <label>
+        Who is booking? (initials or name)
+        <input type="text" id="userNameInput" placeholder="e.g. WP" />
+      </label>
+    </div>
+
+    <div class="controls-row">
+      <label>
+        Technician
+        <select id="technicianSelect">
+          <option value="">– choose –</option>
+          <option value="Sasi">Sasi</option>
+          <option value="Viviana">Viviana</option>
+          <option value="Simon">Simon</option>
+          <option value="Lara">Lara</option>
+          <option value="Stefanija">Stefanija</option>
+        </select>
+      </label>
+
+      <label style="flex: 1 1 230px;">
+        Task / booking description
+        <input
+          type="text"
+          id="taskInput"
+          placeholder="e.g. inventory work, BET, lab tour..."
+        />
+      </label>
+
+      <label>
+        Date &amp; time from
+        <input type="datetime-local" id="startInput" />
+      </label>
+
+      <label>
+        Date &amp; time to
+        <input type="datetime-local" id="endInput" />
+      </label>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary" id="addBookingBtn">Add booking</button>
+        <button class="btn btn-ghost" id="clearFormBtn">Clear</button>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="legend-item"><span class="dot tech-Sasi"></span> Sasi</span>
+      <span class="legend-item"><span class="dot tech-Viviana"></span> Viviana</span>
+      <span class="legend-item"><span class="dot tech-Simon"></span> Simon</span>
+      <span class="legend-item"><span class="dot tech-Lara"></span> Lara</span>
+      <span class="legend-item"><span class="dot tech-Stefanija"></span> Stefanija</span>
+    </div>
+
+    <div class="error" id="errorBox"></div>
+
+    <div class="calendar-header">
+      <div class="month-label" id="monthLabel"></div>
+      <div class="nav-buttons">
+        <button class="btn nav-btn-primary" id="todayBtn">Today</button>
+        <button class="nav-btn" id="prevMonthBtn">&#x25C0;</button>
+        <button class="nav-btn" id="nextMonthBtn">&#x25B6;</button>
+      </div>
+    </div>
+
+    <table class="calendar" id="calendarTable"></table>
+
+    <div class="bookings-list">
+      <h2>Bookings (list)</h2>
+      <div id="bookingsList"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    // ------- Firebase imports (CDN) -------
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      onSnapshot,
+      query,
+      orderBy,
+      Timestamp,
+      doc,
+      deleteDoc,
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    // ------- Firebase config (WSTAW SWOJE DANE TUTAJ) -------
+    const firebaseConfig = {
+
+  apiKey: "AIzaSyBz9WjF4aUhrCujzpzn4DHGX1MW--sV7iQ",
+
+  authDomain: "lab-technicians-booking.firebaseapp.com",
+
+  projectId: "lab-technicians-booking",
+
+  storageBucket: "lab-technicians-booking.firebasestorage.app",
+
+  messagingSenderId: "897254183022",
+
+  appId: "1:897254183022:web:5ed0e7b98fa5553717967f",
+
+  measurementId: "G-ZF5Z2GLBK7"
+
+};
+
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const bookingsCol = collection(db, "bookings");
+
+    // ------- Helpers -------
+    const TECH_COLORS_CLASS = {
+      Sasi: "tech-Sasi",
+      Viviana: "tech-Viviana",
+      Simon: "tech-Simon",
+      Lara: "tech-Lara",
+      Stefanija: "tech-Stefanija",
+    };
+
+    const DAY_START_MIN = 8 * 60; // 08:00
+    const DAY_END_MIN = 18 * 60; // 18:00
+    const DAY_TOTAL_MIN = DAY_END_MIN - DAY_START_MIN;
+
+    const $ = (id) => document.getElementById(id);
+
+    const technicianSelect = $("technicianSelect");
+    const taskInput = $("taskInput");
+    const startInput = $("startInput");
+    const endInput = $("endInput");
+    const addBookingBtn = $("addBookingBtn");
+    const clearFormBtn = $("clearFormBtn");
+    const errorBox = $("errorBox");
+    const monthLabel = $("monthLabel");
+    const calendarTable = $("calendarTable");
+    const bookingsList = $("bookingsList");
+    const userNameInput = $("userNameInput");
+
+    let currentUser = "";
+    let currentMonth = (() => {
+      const d = new Date();
+      return new Date(d.getFullYear(), d.getMonth(), 1);
+    })();
+
+    /** all bookings from Firestore */
+    let allBookings = [];
+
+    // ------- User name handling -------
+    const savedUser = localStorage.getItem("labTechBookingUser") || "";
+    userNameInput.value = savedUser;
+    currentUser = savedUser || "";
+
+    userNameInput.addEventListener("input", () => {
+      currentUser = userNameInput.value.trim();
+      localStorage.setItem("labTechBookingUser", currentUser);
+      renderBookingsList();
+    });
+
+    // ------- Datetime snapping (00 / 30) -------
+    function toLocalInputValue(date) {
+      const pad = (n) => String(n).padStart(2, "0");
+      return (
+        date.getFullYear() +
+        "-" +
+        pad(date.getMonth() + 1) +
+        "-" +
+        pad(date.getDate()) +
+        "T" +
+        pad(date.getHours()) +
+        ":" +
+        pad(date.getMinutes())
+      );
+    }
+
+    function parseInputDate(val) {
+      if (!val) return null;
+      // val in "YYYY-MM-DDTHH:MM"
+      const [datePart, timePart] = val.split("T");
+      const [y, m, d] = datePart.split("-").map(Number);
+      const [h, min] = timePart.split(":").map(Number);
+      return new Date(y, m - 1, d, h, min, 0, 0);
+    }
+
+    function snapToHalfHour(inputEl) {
+      const val = inputEl.value;
+      if (!val) return;
+      const date = parseInputDate(val);
+      let mins = date.getMinutes();
+      let h = date.getHours();
+
+      if (mins < 15) {
+        mins = 0;
+      } else if (mins < 45) {
+        mins = 30;
+      } else {
+        mins = 0;
+        h += 1;
+        if (h === 24) {
+          h = 0;
+          date.setDate(date.getDate() + 1);
+        }
+      }
+
+      date.setHours(h, mins, 0, 0);
+      inputEl.value = toLocalInputValue(date);
+    }
+
+    startInput.addEventListener("change", () => snapToHalfHour(startInput));
+    endInput.addEventListener("change", () => snapToHalfHour(endInput));
+
+    // When user clicks on a day in calendar, fill date part and focus time
+    function setFormDateFromDay(dateObj) {
+      const base = new Date(
+        dateObj.getFullYear(),
+        dateObj.getMonth(),
+        dateObj.getDate(),
+        9,
+        0,
+        0,
+        0
+      );
+      startInput.value = toLocalInputValue(base);
+      const endBase = new Date(base.getTime() + 60 * 60 * 1000);
+      endInput.value = toLocalInputValue(endBase);
+      startInput.focus();
+    }
+
+    // ------- Overlap / overbooking utilities -------
+    function intervalsOverlap(aStart, aEnd, bStart, bEnd) {
+      return aStart < bEnd && bStart < aEnd;
+    }
+
+    function detectOverbooking(tech, start, end, ignoreId = null) {
+      // same technician & overlapping time
+      for (const b of allBookings) {
+        if (ignoreId && b.id === ignoreId) continue;
+        if (b.technician !== tech) continue;
+        const bStart = b.start.toDate();
+        const bEnd = b.end.toDate();
+        if (intervalsOverlap(start, end, bStart, bEnd)) {
+          return b;
+        }
+      }
+      return null;
+    }
+
+    function formatDate(d) {
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+    }
+
+    function formatTime(d) {
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    // ------- Add booking -------
+    addBookingBtn.addEventListener("click", async () => {
+      errorBox.textContent = "";
+      const tech = technicianSelect.value;
+      const task = taskInput.value.trim();
+      const start = parseInputDate(startInput.value);
+      const end = parseInputDate(endInput.value);
+
+      if (!currentUser) {
+        errorBox.textContent = "Please write who is booking (your name/initials).";
+        userNameInput.focus();
+        return;
+      }
+      if (!tech || !start || !end) {
+        errorBox.textContent = "Technician and both dates are required.";
+        return;
+      }
+      if (end <= start) {
+        errorBox.textContent = "End time must be after start time.";
+        return;
+      }
+
+      const over = detectOverbooking(tech, start, end);
+      if (over) {
+        const s = over.start.toDate();
+        const e = over.end.toDate();
+        errorBox.textContent =
+          `Overbooking: ${tech} is already booked ` +
+          `${formatDate(s)} (${formatTime(s)}–${formatTime(e)}).`;
+        return;
+      }
+
+      try {
+        await addDoc(bookingsCol, {
+          technician: tech,
+          task,
+          start: Timestamp.fromDate(start),
+          end: Timestamp.fromDate(end),
+          createdBy: currentUser,
+          createdAt: Timestamp.fromDate(new Date()),
+        });
+        // clear task only
+        taskInput.value = "";
+        errorBox.textContent = "";
+      } catch (e) {
+        console.error(e);
+        errorBox.textContent = "Error saving booking. Please try again.";
+      }
+    });
+
+    clearFormBtn.addEventListener("click", () => {
+      technicianSelect.value = "";
+      taskInput.value = "";
+      startInput.value = "";
+      endInput.value = "";
+      errorBox.textContent = "";
+    });
+
+    // ------- Firestore live subscription -------
+    const qBookings = query(bookingsCol, orderBy("start", "asc"));
+
+    onSnapshot(qBookings, (snapshot) => {
+      allBookings = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
+      renderCalendar();
+      renderBookingsList();
+    });
+
+    // ------- Calendar rendering -------
+
+    function renderCalendar() {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+
+      const monthName = currentMonth.toLocaleString("en", {
+        month: "long",
+        year: "numeric",
+      });
+      monthLabel.textContent = monthName;
+
+      // headers
+      const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      let html = "<thead><tr>";
+      for (const w of weekdays) {
+        html += `<th>${w}</th>`;
+      }
+      html += "</tr></thead><tbody>";
+
+      const firstDay = new Date(year, month, 1);
+      const startWeekday = (firstDay.getDay() + 6) % 7; // 0=Mon
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      let day = 1 - startWeekday;
+      const today = new Date();
+      for (let week = 0; week < 6; week++) {
+        html += "<tr>";
+        for (let wd = 0; wd < 7; wd++, day++) {
+          const d = new Date(year, month, day);
+          const inCurrent = d.getMonth() === month;
+          const isToday =
+            d.getDate() === today.getDate() &&
+            d.getMonth() === today.getMonth() &&
+            d.getFullYear() === today.getFullYear();
+
+          const dayNumber = inCurrent ? d.getDate() : "";
+          const cellClass = isToday ? "today-cell" : "";
+
+          html += `<td class="${cellClass}" data-date="${d.toISOString()}">
+            <div class="day-inner">
+              <div class="day-number">${dayNumber}</div>
+              <div class="slots"></div>
+            </div>
+          </td>`;
+        }
+        html += "</tr>";
+      }
+
+      html += "</tbody>";
+      calendarTable.innerHTML = html;
+
+      // add click handler for date picking
+      Array.from(calendarTable.querySelectorAll("td")).forEach((td) => {
+        td.addEventListener("click", (e) => {
+          // avoid triggering when clicking on a pill
+          if (e.target.closest(".booking-pill")) return;
+          const iso = td.getAttribute("data-date");
+          const d = new Date(iso);
+          setFormDateFromDay(d);
+        });
+      });
+
+      // fill bookings
+      renderBookingsInCalendar();
+    }
+
+    function renderBookingsInCalendar() {
+      // group bookings by day (yyyy-mm-dd)
+      const groups = {};
+      for (const b of allBookings) {
+        const s = b.start.toDate();
+        const key = s.getFullYear() + "-" + (s.getMonth() + 1) + "-" + s.getDate();
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(b);
+      }
+
+      // Render per day
+      Array.from(calendarTable.querySelectorAll("td")).forEach((td) => {
+        const iso = td.getAttribute("data-date");
+        const d = new Date(iso);
+        const key = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+        const dayBookings = groups[key] || [];
+        const slots = td.querySelector(".slots");
+        slots.innerHTML = "";
+
+        if (!dayBookings.length) return;
+
+        // sort by start time
+        dayBookings.sort(
+          (a, b) => a.start.toDate().getTime() - b.start.toDate().getTime()
+        );
+
+        // lane calculation for overlapping (horizontal split)
+        const lanes = []; // each lane: array of bookings
+        const meta = new Map(); // booking.id -> {laneIndex}
+
+        for (const b of dayBookings) {
+          const s = b.start.toDate();
+          const e = b.end.toDate();
+
+          let placed = false;
+          for (let i = 0; i < lanes.length; i++) {
+            const lane = lanes[i];
+            const last = lane[lane.length - 1];
+            const lastS = last.start.toDate();
+            const lastE = last.end.toDate();
+            if (!intervalsOverlap(s, e, lastS, lastE)) {
+              lane.push(b);
+              meta.set(b.id, { laneIndex: i });
+              placed = true;
+              break;
+            }
+          }
+          if (!placed) {
+            lanes.push([b]);
+            meta.set(b.id, { laneIndex: lanes.length - 1 });
+          }
+        }
+
+        const totalLanes = lanes.length || 1;
+
+        // create pills
+        for (const b of dayBookings) {
+          const s = b.start.toDate();
+          const e = b.end.toDate();
+
+          const startMin = s.getHours() * 60 + s.getMinutes();
+          const endMin = e.getHours() * 60 + e.getMinutes();
+
+          const topMin = Math.max(startMin, DAY_START_MIN);
+          const bottomMin = Math.min(endMin, DAY_END_MIN);
+          let span = (bottomMin - topMin) / DAY_TOTAL_MIN;
+          if (!Number.isFinite(span) || span <= 0) span = 0.12; // minimum height
+          let topFrac = (topMin - DAY_START_MIN) / DAY_TOTAL_MIN;
+          if (!Number.isFinite(topFrac) || topFrac < 0) topFrac = 0;
+
+          const { laneIndex } = meta.get(b.id);
+          const widthPct = 100 / totalLanes;
+          const leftPct = (laneIndex * 100) / totalLanes;
+
+          const div = document.createElement("div");
+          div.className =
+            "booking-pill " + (TECH_COLORS_CLASS[b.technician] || "");
+          div.style.top = topFrac * 100 + "%";
+          div.style.height = span * 100 + "%";
+          div.style.left = leftPct + "%";
+          div.style.width = widthPct + "%";
+          div.title =
+            `${b.technician} – ` +
+            `${formatDate(s)} ${formatTime(s)} – ${formatDate(e)} ${formatTime(e)}`;
+          div.textContent = b.task ? b.task : b.technician;
+
+          // clicking a pill scrolls to list item
+          div.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            const rowEl = document.querySelector(
+              `.booking-row[data-id="${b.id}"]`
+            );
+            if (rowEl) {
+              rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+              rowEl.style.outline = "2px solid " + getComputedStyle(div).backgroundColor;
+              setTimeout(() => {
+                rowEl.style.outline = "none";
+              }, 1500);
+            }
+          });
+
+          slots.appendChild(div);
+        }
+      });
+    }
+
+    // ------- Bookings list below calendar -------
+    async function handleDeleteBooking(id) {
+      if (!currentUser) {
+        alert("Please write your name in 'Who is booking?' first.");
+        return;
+      }
+      const booking = allBookings.find((b) => b.id === id);
+      if (!booking) return;
+      if (booking.createdBy !== currentUser) {
+        alert("Only the person who created this booking can delete it.");
+        return;
+      }
+      if (!confirm("Delete this booking?")) return;
+      try {
+        await deleteDoc(doc(db, "bookings", id));
+      } catch (e) {
+        console.error(e);
+        alert("Error deleting booking.");
+      }
+    }
+
+    function renderBookingsList() {
+      if (!allBookings.length) {
+        bookingsList.innerHTML =
+          '<div style="font-size:12px;color:var(--muted);">No bookings yet.</div>';
+        return;
+      }
+      let html = "";
+      for (const b of allBookings) {
+        const s = b.start.toDate();
+        const e = b.end.toDate();
+        const range =
+          `${formatDate(s)} ${formatTime(s)} – ` +
+          `${formatDate(e)} ${formatTime(e)}`;
+        const mine = currentUser && b.createdBy === currentUser;
+
+        html += `<div class="booking-row" data-id="${b.id}">
+          <div>
+            <div>${range}</div>
+            <div class="booking-row-meta">Created by: ${
+              b.createdBy || "unknown"
+            }</div>
+          </div>
+          <div>${b.technician}</div>
+          <div>${b.task || "<no description>"}</div>
+          <div class="booking-row-actions">`;
+
+        if (mine) {
+          html += `<button class="btn btn-small btn-ghost" data-del="${b.id}">Delete</button>`;
+        } else {
+          html += `<span style="font-size:11px;color:var(--muted);">read-only</span>`;
+        }
+
+        html += `</div></div>`;
+      }
+      bookingsList.innerHTML = html;
+
+      // attach delete handlers
+      bookingsList
+        .querySelectorAll("button[data-del]")
+        .forEach((btn) =>
+          btn.addEventListener("click", () =>
+            handleDeleteBooking(btn.getAttribute("data-del"))
+          )
+        );
+    }
+
+    // ------- Month navigation -------
+    $("prevMonthBtn").addEventListener("click", () => {
+      currentMonth = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() - 1,
+        1
+      );
+      renderCalendar();
+    });
+
+    $("nextMonthBtn").addEventListener("click", () => {
+      currentMonth = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() + 1,
+        1
+      );
+      renderCalendar();
+    });
+
+    $("todayBtn").addEventListener("click", () => {
+      const d = new Date();
+      currentMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+      renderCalendar();
+    });
+
+    // ------- Init -------
+    renderCalendar();
+  </script>
+</body>
+</html>
