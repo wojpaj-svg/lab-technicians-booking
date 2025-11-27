@@ -369,7 +369,7 @@
     </div>
   </div>
 
-  <script type="module">
+    <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import {
       getFirestore,
@@ -399,7 +399,7 @@
 
     // technician list for permissions
     const TECHNICIANS = ["Sasi", "Viviana", "Simon", "Lara", "Stefanija"];
-    const technicianUsernames = TECHNICIANS.map(n => n.toLowerCase());
+    const technicianUsernames = TECHNICIANS.map((n) => n.toLowerCase());
 
     function normalizeName(str) {
       return (str || "").trim().toLowerCase();
@@ -448,6 +448,32 @@
     function toJSDate(value) {
       if (!value) return null;
       return new Date(value);
+    }
+
+    // 🔥 TWARDY ROUNDING DO 00 / 30
+    function roundTo30(date) {
+      const minutes = date.getMinutes();
+      let rounded = Math.round(minutes / 30) * 30;
+      if (rounded === 60) {
+        date.setHours(date.getHours() + 1);
+        rounded = 0;
+      }
+      date.setMinutes(rounded, 0, 0);
+      return date;
+    }
+
+    function toLocalInputValue(d) {
+      const off = d.getTimezoneOffset();
+      const local = new Date(d.getTime() - off * 60 * 1000);
+      return local.toISOString().slice(0, 16);
+    }
+
+    function normalizeInputTo30(input) {
+      if (!input.value) return;
+      const d = toJSDate(input.value);
+      if (!d) return;
+      const rounded = roundTo30(d);
+      input.value = toLocalInputValue(rounded);
     }
 
     function sameDay(d1, d2) {
@@ -669,8 +695,18 @@
       });
     }
 
+    // 🔥 podpinamy zaokrąglanie pod inputy
+    ["change", "blur"].forEach((evName) => {
+      startInput.addEventListener(evName, () => normalizeInputTo30(startInput));
+      endInput.addEventListener(evName, () => normalizeInputTo30(endInput));
+    });
+
     addBtn.addEventListener("click", async () => {
       errorEl.textContent = "";
+
+      // twardy rounding zanim cokolwiek policzymy
+      normalizeInputTo30(startInput);
+      normalizeInputTo30(endInput);
 
       let technician = technicianSelect.value;
       const task = taskInput.value.trim();
