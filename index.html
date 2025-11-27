@@ -215,25 +215,32 @@
       color: var(--text-muted);
       margin-bottom: 2px;
     }
+
     .day-cell {
       background: #f9fafb;
       border-radius: 10px;
       border: 1px solid var(--border);
       min-height: 78px;
       padding: 4px 4px 4px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+
+      display: flex;              /* ★★★ CHANGE */
+      flex-direction: row;        /* ★★★ CHANGE */
+      flex-wrap: wrap;            /* ★★★ CHANGE */
+      align-items: flex-start;    /* ★★★ CHANGE */
+
       font-size: 11px;
       position: relative;
       overflow: hidden;
     }
+
     .day-number {
       font-weight: 500;
       font-size: 11px;
       color: var(--text-muted);
+      width: 100%;
       margin-bottom: 2px;
     }
+
     .day-cell.today .day-number {
       color: var(--accent);
       font-weight: 700;
@@ -242,6 +249,7 @@
       background: #f3f4f6;
       opacity: 0.7;
     }
+
     .pill {
       border-radius: var(--pill-radius);
       padding: 2px 6px;
@@ -252,7 +260,11 @@
       text-overflow: ellipsis;
       overflow: hidden;
       border: 1px solid rgba(15,23,42,0.08);
+
+      margin-right: 2px;   /* ★★★ CHANGE */
+      margin-bottom: 2px;  /* ★★★ CHANGE */
     }
+
     .pill.sasi { background: var(--sasi); }
     .pill.viviana { background: var(--viviana); }
     .pill.simon { background: var(--simon); }
@@ -811,3 +823,4 @@
   </script>
 </body>
 </html>
+
