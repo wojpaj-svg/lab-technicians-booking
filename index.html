@@ -372,7 +372,7 @@
     </div>
 
     <div class="card" id="bookingsCard">
-      <h2>Bookings list</h2>
+      <h2>Assignments list</h2>
       <div id="bookingsList" class="info-text">
         Loading…
       </div>
@@ -610,7 +610,7 @@
               })}`;
 
           pill.textContent = `${b.technician}: ${
-            b.task || "booking"
+            b.task || "assignment"
           } (${timeLabel})`;
           pill.title =
             `${b.technician} – ${b.task || "booking"}\n` +
@@ -874,5 +874,6 @@
   </script>
 </body>
 </html>
+
 
 
