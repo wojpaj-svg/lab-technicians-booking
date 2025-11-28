@@ -653,74 +653,76 @@
 
 
     function renderBookingsList() {
-      if (!bookings.length) {
-        bookingsListEl.textContent = "No bookings yet.";
-        return;
-      }
-      bookingsListEl.innerHTML = "";
-      bookings.forEach((b) => {
-        const wrapper = document.createElement("div");
-        wrapper.style.padding = "8px 10px";
-        wrapper.style.marginTop = "6px";
-        wrapper.style.borderRadius = "10px";
-        wrapper.style.background = "#eef3ff";
+  if (!bookings.length) {
+    bookingsListEl.textContent = "No assignments yet.";
+    return;
+  }
 
-        const s = b.start.toDate();
-        const e = b.end.toDate();
+  bookingsListEl.innerHTML = "";
+  bookings.forEach((b) => {
+    const wrapper = document.createElement("div");
+    wrapper.style.padding = "8px 10px";
+    wrapper.style.marginTop = "6px";
+    wrapper.style.borderRadius = "10px";
+    wrapper.style.background = "#eef3ff";
 
-        const line1 = document.createElement("div");
-        line1.style.fontSize = "12px";
-        line1.innerHTML = `<strong>${b.technician}</strong> – ${
-          b.task || "assignment"
-        }`;
+    const s = b.start.toDate();
+    const e = b.end.toDate();
 
-        const line2 = document.createElement("div");
-        line2.style.fontSize = "11px";
-        line2.textContent = `${formatDateTime(s)} → ${formatDateTime(e)}`;
+    const line1 = document.createElement("div");
+    line1.style.fontSize = "12px";
+    line1.innerHTML = `<strong>${b.technician}</strong> – ${b.task || "assignment"}`;
 
-        const line3 = document.createElement("div");
-        line3.style.fontSize = "11px";
-        line3.textContent = `Created by: ${b.createdBy}`;
+    const line2 = document.createElement("div");
+    line2.style.fontSize = "11px";
+    line2.textContent = `${formatDateTime(s)} → ${formatDateTime(e)}`;
 
-        wrapper.appendChild(line1);
-        wrapper.appendChild(line2);
-        wrapper.appendChild(line3);
+    const line3 = document.createElement("div");
+    line3.style.fontSize = "11px";
+    line3.textContent = `Created by: ${b.createdBy}`;
 
-        if (b.createdBy === currentUser) {
-          const delBtn = document.createElement("button");
-          delBtn.textContent = "Delete";
-          delBtn.className = "btn-secondary";
-          delBtn.style.marginTop = "4px";
-          delBtn.style.fontSize = "11px";
-          delBtn.style.padding = "3px 10px";
-          delBtn.style.background = "#fee2e2";
-          delBtn.style.border = "1px solid #fecaca";
-          delBtn.style.color = "#b91c1c";
+    wrapper.appendChild(line1);
+    wrapper.appendChild(line2);
+    wrapper.appendChild(line3);
 
-          delBtn.addEventListener("click", async () => {
-            const ok = confirm(
-              `${b.technician} – ${b.task || "booking"}\n` +
-                `${formatDateTime(s)} → ${formatDateTime(e)}\n\n` +
-                `Delete this booking?`
-            );
-            if (ok) {
-              await deleteDoc(doc(bookingsCol, b.id));
-            }
-          });
+    // ✔️ PRZYCISK DELETE — tylko dla autora wpisu
+    if (b.createdBy === currentUser) {
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "Delete";
+      delBtn.style.marginTop = "6px";
+      delBtn.style.padding = "4px 12px";
+      delBtn.style.fontSize = "11px";
+      delBtn.style.borderRadius = "8px";
+      delBtn.style.background = "#fee2e2";
+      delBtn.style.border = "1px solid #fecaca";
+      delBtn.style.color = "#b91c1c";
+      delBtn.style.cursor = "pointer";
 
-          wrapper.appendChild(delBtn);
-        } else {
-          const ro = document.createElement("div");
-          ro.style.fontSize = "10px";
-          ro.style.marginTop = "4px";
-          ro.style.color = "#6b7280";
-          ro.textContent = "read-only";
-          wrapper.appendChild(ro);
+      delBtn.addEventListener("click", async () => {
+        const ok = confirm(
+          `${b.technician} – ${b.task || "assignment"}\n` +
+          `${formatDateTime(s)} → ${formatDateTime(e)}\n\n` +
+          `Delete this assignment?`
+        );
+        if (ok) {
+          await deleteDoc(doc(bookingsCol, b.id));
         }
-
-        bookingsListEl.appendChild(wrapper);
       });
+
+      wrapper.appendChild(delBtn);
+    } else {
+      const ro = document.createElement("div");
+      ro.style.fontSize = "10px";
+      ro.style.marginTop = "4px";
+      ro.style.color = "#6b7280";
+      ro.textContent = "read-only";
+      wrapper.appendChild(ro);
     }
+
+    bookingsListEl.appendChild(wrapper);
+  });
+}
+
 
     // 🔥 podpinamy zaokrąglanie pod inputy
     ["change", "blur"].forEach((evName) => {
@@ -874,6 +876,7 @@
   </script>
 </body>
 </html>
+
 
 
 
