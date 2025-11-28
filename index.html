@@ -621,14 +621,14 @@
             ev.stopPropagation();
             if (b.createdBy !== currentUser) {
               alert(
-                `This booking was created by ${b.createdBy}. You cannot delete it.`
+                `This assignment was created by ${b.createdBy}. You cannot delete it.`
               );
               return;
             }
             const ok = confirm(
               `${b.technician} – ${b.task || "assignment"}\n` +
                 `${formatDateTime(s)} → ${formatDateTime(e)}\n\n` +
-                `Delete this booking?`
+                `Delete this assignment?`
             );
             if (ok) {
               await deleteDoc(doc(bookingsCol, b.id));
@@ -874,6 +874,7 @@
   </script>
 </body>
 </html>
+
 
 
 
