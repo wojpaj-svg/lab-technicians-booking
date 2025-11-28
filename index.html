@@ -345,7 +345,7 @@
           <div class="legend-item"><span class="legend-dot" style="background: var(--stefanija)"></span>Stefanija</div>
         </div>
         <div class="legend-info">
-          Click a coloured bar in the calendar to view details. If it is your booking – you can delete it.
+          Click a coloured bar in the calendar to view details. If it is your assignment – you can delete it.
         </div>
       </div>
     </div>
@@ -613,7 +613,7 @@
             b.task || "assignment"
           } (${timeLabel})`;
           pill.title =
-            `${b.technician} – ${b.task || "booking"}\n` +
+            `${b.technician} – ${b.task || "assignment"}\n` +
             `${formatDateTime(s)}  →  ${formatDateTime(e)}\n` +
             `Created by: ${b.createdBy}`;
 
@@ -626,7 +626,7 @@
               return;
             }
             const ok = confirm(
-              `${b.technician} – ${b.task || "booking"}\n` +
+              `${b.technician} – ${b.task || "assignment"}\n` +
                 `${formatDateTime(s)} → ${formatDateTime(e)}\n\n` +
                 `Delete this booking?`
             );
@@ -671,7 +671,7 @@
         const line1 = document.createElement("div");
         line1.style.fontSize = "12px";
         line1.innerHTML = `<strong>${b.technician}</strong> – ${
-          b.task || "booking"
+          b.task || "assignment"
         }`;
 
         const line2 = document.createElement("div");
@@ -874,6 +874,7 @@
   </script>
 </body>
 </html>
+
 
 
 
