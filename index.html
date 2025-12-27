@@ -909,7 +909,9 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
         currentYear--;
       }
       renderCalendar();
-    });
+renderBookingsList();
+localStorage.setItem("labTechBookingView", JSON.stringify({ month: currentMonth, year: currentYear }));
+
     document.getElementById("nextMonth").addEventListener("click", () => {
       currentMonth++;
       if (currentMonth > 11) {
@@ -917,13 +919,17 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
         currentYear++;
       }
       renderCalendar();
-    });
+renderBookingsList();
+localStorage.setItem("labTechBookingView", JSON.stringify({ month: currentMonth, year: currentYear }));
+
     document.getElementById("todayBtn").addEventListener("click", () => {
       const now = new Date();
       currentMonth = now.getMonth();
       currentYear = now.getFullYear();
-      renderCalendar();
-    });
+     renderCalendar();
+renderBookingsList();
+localStorage.setItem("labTechBookingView", JSON.stringify({ month: currentMonth, year: currentYear }));
+
 
     const qBookings = query(bookingsCol, orderBy("start"));
     onSnapshot(qBookings, (snapshot) => {
@@ -960,6 +966,7 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
   </script>
 </body>
 </html>
+
 
 
 
