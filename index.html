@@ -440,8 +440,19 @@ signInAnonymously(auth);
       ? TECHNICIANS[technicianUsernames.indexOf(currentUserNorm)]
       : null;
 
-    let currentMonth = new Date().getMonth();
-    let currentYear = new Date().getFullYear();
+    const savedView = JSON.parse(localStorage.getItem("labTechBookingView") || "null");
+
+let currentMonth, currentYear;
+
+if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView.year)) {
+  currentMonth = savedView.month;
+  currentYear = savedView.year;
+} else {
+  const now = new Date();
+  currentMonth = now.getMonth();
+  currentYear = now.getFullYear();
+}
+
     let bookings = []; // {id, technician, task, start, end, createdBy}
     let editingBookingId = null;
 
@@ -949,5 +960,6 @@ signInAnonymously(auth);
   </script>
 </body>
 </html>
+
 
 
