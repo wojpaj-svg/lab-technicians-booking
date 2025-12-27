@@ -389,6 +389,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
       addDoc,
       onSnapshot,
       query,
+      where,
       orderBy,
       Timestamp,
       doc,
@@ -688,7 +689,19 @@ signInAnonymously(auth);
         return;
       }
       bookingsListEl.innerHTML = "";
-      bookings.forEach((b) => {
+        const monthStart = new Date(currentYear, currentMonth, 1);
+  const monthEnd = new Date(currentYear, currentMonth + 1, 1);
+
+  const monthBookings = bookings
+    .filter(b => {
+      const s = b.start.toDate();
+      return s >= monthStart && s < monthEnd;
+    })
+    .sort((a, b) => b.start.toDate() - a.start.toDate());
+
+      
+      monthBookings.forEach((b) => {
+
         const wrapper = document.createElement("div");
         wrapper.style.padding = "8px 10px";
         wrapper.style.marginTop = "6px";
@@ -936,4 +949,5 @@ signInAnonymously(auth);
   </script>
 </body>
 </html>
+
 
