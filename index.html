@@ -695,23 +695,25 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
     }
 
     function renderBookingsList() {
-      if (!bookings.length) {
-        bookingsListEl.textContent = "No bookings yet.";
-        return;
-      }
-      bookingsListEl.innerHTML = "";
+  bookingsListEl.innerHTML = "";
+
         const monthStart = new Date(currentYear, currentMonth, 1);
   const monthEnd = new Date(currentYear, currentMonth + 1, 1);
 
-  const monthBookings = bookings
+   const monthBookings = bookings
     .filter(b => {
       const s = b.start.toDate();
       return s >= monthStart && s < monthEnd;
     })
     .sort((a, b) => b.start.toDate() - a.start.toDate());
 
-      
-      monthBookings.forEach((b) => {
+  if (!monthBookings.length) {
+    bookingsListEl.textContent = "No assignments in this month.";
+    return;
+  }
+
+  monthBookings.forEach((b) => {
+
 
         const wrapper = document.createElement("div");
         wrapper.style.padding = "8px 10px";
@@ -960,6 +962,7 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
   </script>
 </body>
 </html>
+
 
 
 
