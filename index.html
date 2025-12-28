@@ -475,6 +475,21 @@ if (isAdminUser) {
   printToggleBtn.style.display = "inline-flex";
 
   // wypełnij select techników
+
+  const savedView = JSON.parse(localStorage.getItem("labTechBookingView") || "null");
+
+let currentMonth, currentYear;
+
+if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView.year)) {
+  currentMonth = savedView.month;
+  currentYear = savedView.year;
+} else {
+  const now = new Date();
+  currentMonth = now.getMonth();
+  currentYear = now.getFullYear();
+}
+
+  
   reportTechEl.innerHTML = TECHNICIANS.map(t => `<option value="${t}">${t}</option>`).join("");
 
   // domyślny zakres: bieżący miesiąc widoku kalendarza
@@ -496,17 +511,7 @@ if (isAdminUser) {
       ? TECHNICIANS[technicianUsernames.indexOf(currentUserNorm)]
       : null;
 
-    const savedView = JSON.parse(localStorage.getItem("labTechBookingView") || "null");
-
-let currentMonth, currentYear;
-
-if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView.year)) {
-  currentMonth = savedView.month;
-  currentYear = savedView.year;
-} else {
-  const now = new Date();
-  currentMonth = now.getMonth();
-  currentYear = now.getFullYear();
+    
 }
 
     let bookings = []; // {id, technician, task, start, end, createdBy}
@@ -1018,6 +1023,7 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
   </script>
 </body>
 </html>
+
 
 
 
