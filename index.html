@@ -371,13 +371,40 @@
       <div class="calendar-grid" id="calendarGrid"></div>
     </div>
 
-    <div class="card" id="bookingsCard">
-      <h2>Assignments list</h2>
-      <div id="bookingsList" class="info-text">
-        Loading…
+   <div class="card" id="bookingsCard">
+  <h2>
+    Assignments list
+    <button class="nav-btn" id="printToggleBtn" style="display:none;">Print report</button>
+  </h2>
+
+  <div id="printPanel" style="display:none; margin:8px 0 10px; padding:10px; background:#fff; border:1px solid var(--border); border-radius:12px;">
+    <div class="form-grid" style="margin:0;">
+      <div>
+        <label for="reportTech">Technician</label>
+        <select id="reportTech"></select>
+      </div>
+      <div>
+        <label for="reportFrom">From (date)</label>
+        <input id="reportFrom" type="date" />
+      </div>
+      <div>
+        <label for="reportTo">To (date)</label>
+        <input id="reportTo" type="date" />
+      </div>
+      <div style="display:flex; align-items:flex-end; gap:8px;">
+        <button class="btn-primary" id="printBtn" style="height:30px;">Print</button>
+        <div class="error" id="reportError" style="margin:0;"></div>
       </div>
     </div>
+    <div class="info-text" style="margin-top:6px;">
+      Visible only for admins (WP/AS).
+    </div>
   </div>
+
+  <div id="bookingsList" class="info-text">
+    Loading…
+  </div>
+</div>
 
   <script type="module">
    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
@@ -433,6 +460,35 @@ signInAnonymously(auth);
       localStorage.setItem("labTechBookingUser", currentUser);
     }
     document.getElementById("currentUserLabel").textContent = currentUser;
+
+    const ADMIN_USERS = ["wp", "am"];
+const isAdminUser = ADMIN_USERS.includes(normalizeName(currentUser));
+
+const printToggleBtn = document.getElementById("printToggleBtn");
+const printPanel = document.getElementById("printPanel");
+const reportTechEl = document.getElementById("reportTech");
+const reportFromEl = document.getElementById("reportFrom");
+const reportToEl = document.getElementById("reportTo");
+const reportErrorEl = document.getElementById("reportError");
+
+if (isAdminUser) {
+  printToggleBtn.style.display = "inline-flex";
+
+  // wypełnij select techników
+  reportTechEl.innerHTML = TECHNICIANS.map(t => `<option value="${t}">${t}</option>`).join("");
+
+  // domyślny zakres: bieżący miesiąc widoku kalendarza
+  const d1 = new Date(currentYear, currentMonth, 1);
+  const d2 = new Date(currentYear, currentMonth + 1, 0);
+  reportFromEl.value = d1.toISOString().slice(0,10);
+  reportToEl.value = d2.toISOString().slice(0,10);
+
+  printToggleBtn.addEventListener("click", () => {
+    reportErrorEl.textContent = "";
+    printPanel.style.display = (printPanel.style.display === "none") ? "block" : "none";
+  });
+}
+
 
     const currentUserNorm = normalizeName(currentUser);
     const isTechnicianUser = technicianUsernames.includes(currentUserNorm);
@@ -962,6 +1018,7 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
   </script>
 </body>
 </html>
+
 
 
 
