@@ -18,6 +18,8 @@
       --simon: #0ea5e9;
       --lara: #f97316;
       --stefanija: #eab308;
+      --klara: #1e3a8a;
+
     }
     * {
       box-sizing: border-box;
@@ -268,6 +270,8 @@
     .pill.simon { background: var(--simon); }
     .pill.lara { background: var(--lara); }
     .pill.stefanija { background: var(--stefanija); }
+    .pill.klara { background: var(--klara); }
+
 
     .info-text {
       font-size: 11px;
@@ -311,6 +315,8 @@
               <option value="Simon">Simon</option>
               <option value="Lara">Lara</option>
               <option value="Stefanija">Stefanija</option>
+              <option value="Klara">Klara</option>
+
             </select>
           </div>
           <div>
@@ -343,6 +349,7 @@
           <div class="legend-item"><span class="legend-dot" style="background: var(--simon)"></span>Simon</div>
           <div class="legend-item"><span class="legend-dot" style="background: var(--lara)"></span>Lara</div>
           <div class="legend-item"><span class="legend-dot" style="background: var(--stefanija)"></span>Stefanija</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--klara)"></span>Klara</div>
         </div>
         <div class="legend-info">
           Click a coloured bar in the calendar to view details. If it is your assignment – you can delete it.
@@ -414,7 +421,7 @@ signInAnonymously(auth);
     const bookingsCol = collection(db, "bookings");
 
     // technician list for permissions
-    const TECHNICIANS = ["Sasi", "Viviana", "Simon", "Lara", "Stefanija"];
+    const TECHNICIANS = ["Sasi", "Viviana", "Simon", "Lara", "Stefanija", "Klara"];
     const technicianUsernames = TECHNICIANS.map((n) => n.toLowerCase());
 
     function normalizeName(str) {
@@ -532,6 +539,7 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
       if (n === "viviana") return "viviana";
       if (n === "simon") return "simon";
       if (n === "lara") return "lara";
+      if (n === "klara") return "klara";
       return "stefanija";
     }
 
@@ -962,6 +970,7 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
   </script>
 </body>
 </html>
+
 
 
 
