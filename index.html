@@ -422,7 +422,36 @@ signInAnonymously(auth);
 
     // technician list for permissions
     const TECHNICIANS = ["Sasi", "Viviana", "Simon", "Lara", "Stefanija", "Klara"];
-    const technicianUsernames = TECHNICIANS.map((n) => n.toLowerCase());
+
+// alias -> canonical technician name
+const TECH_ALIASES = {
+  // Sasi aliases:
+  "sasi": "Sasi",
+  "sp": "Sasi",
+  "ps": "Sasi",
+  "sasikala": "Sasi",
+
+  // Viviana aliases (przykład, dopisz jeśli chcesz):
+  "viviana": "Viviana",
+  "vivi": "Viviana",
+
+  // Simon aliases:
+  "simon": "Simon",
+
+  // Lara aliases:
+  "lara": "Lara",
+    "lh": "Lara",
+    "hl": "Lara",
+
+  // Stefanija aliases:
+  "stefanija": "Stefanija",
+  "ss": "Stefanija",
+
+  // Klara aliases:
+  "klara": "Klara",
+   "kg": "Klara"
+};
+
 
     function normalizeName(str) {
       return (str || "").trim().toLowerCase();
@@ -441,11 +470,10 @@ signInAnonymously(auth);
     }
     document.getElementById("currentUserLabel").textContent = currentUser;
 
-    const currentUserNorm = normalizeName(currentUser);
-    const isTechnicianUser = technicianUsernames.includes(currentUserNorm);
-    const ownTechName = isTechnicianUser
-      ? TECHNICIANS[technicianUsernames.indexOf(currentUserNorm)]
-      : null;
+   const currentUserNorm = normalizeName(currentUser);
+const ownTechName = TECH_ALIASES[currentUserNorm] || null;
+const isTechnicianUser = !!ownTechName;
+
 
     const savedView = JSON.parse(localStorage.getItem("labTechBookingView") || "null");
 
@@ -970,6 +998,7 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
   </script>
 </body>
 </html>
+
 
 
 
