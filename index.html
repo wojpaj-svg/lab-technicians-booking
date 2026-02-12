@@ -359,6 +359,20 @@
 
     <div class="card">
       <div class="calendar-header">
+<div id="filterContainer" style="margin-bottom:8px; display:none;">
+  <select id="technicianFilter" style="padding:6px 8px; border-radius:8px; border:1px solid #d5dde8; font-size:12px;">
+    <option value="ALL">All technicians</option>
+    <option value="Sasi">Sasi</option>
+    <option value="Viviana">Viviana</option>
+    <option value="Simon">Simon</option>
+    <option value="Lara">Lara</option>
+    <option value="Stefanija">Stefanija</option>
+    <option value="Klara">Klara</option>
+  </select>
+</div>
+
+
+        
         <div class="month-title" id="monthTitle"></div>
         <div class="month-nav">
           <button class="nav-btn" id="prevMonth">&lt;</button>
@@ -592,6 +606,10 @@ localStorage.setItem("lastEmail", email);
   const monthTitleEl = document.getElementById("monthTitle");
   const calendarGridEl = document.getElementById("calendarGrid");
   const bookingsListEl = document.getElementById("bookingsList");
+const filterContainer = document.getElementById("filterContainer");
+const technicianFilter = document.getElementById("technicianFilter");
+
+   
 
   const technicianSelect = document.getElementById("technician");
   const taskInput = document.getElementById("task");
@@ -699,6 +717,8 @@ localStorage.setItem("lastEmail", email);
   }
 
   let bookings = []; // docs
+   let currentFilterTechnician = "ALL";
+
   let editingBookingId = null;
 
   // Permissions for UI actions
@@ -799,12 +819,23 @@ localStorage.setItem("lastEmail", email);
       const endOfDay = new Date(dateObj);
       endOfDay.setHours(23, 59, 59, 999);
 
-      const dayBookings = bookings
-        .filter((b) => {
-          const s = b.start.toDate();
-          const e = b.end.toDate();
-          return overlaps(s, e, startOfDay, endOfDay);
-        })
+     const dayBookings = bookings
+  .filter((b) => {
+
+    // FILTER BY ROLE
+    if (isTechnician()) {
+      if (b.technician !== currentProfile?.technicianName) return false;
+    } else {
+      if (currentFilterTechnician !== "ALL" && b.technician !== currentFilterTechnician) {
+        return false;
+      }
+    }
+
+    const s = b.start.toDate();
+    const e = b.end.toDate();
+    return overlaps(s, e, startOfDay, endOfDay);
+  })
+
         .sort((a, b) => a.start.toDate() - b.start.toDate());
 
       let lastKey = null;
@@ -879,11 +910,21 @@ localStorage.setItem("lastEmail", email);
     const monthStart = new Date(currentYear, currentMonth, 1);
     const monthEnd = new Date(currentYear, currentMonth + 1, 1);
 
-    const monthBookings = bookings
-      .filter((b) => {
-        const s = b.start.toDate();
-        return s >= monthStart && s < monthEnd;
-      })
+   const monthBookings = bookings
+  .filter((b) => {
+
+    if (isTechnician()) {
+      if (b.technician !== currentProfile?.technicianName) return false;
+    } else {
+      if (currentFilterTechnician !== "ALL" && b.technician !== currentFilterTechnician) {
+        return false;
+      }
+    }
+
+    const s = b.start.toDate();
+    return s >= monthStart && s < monthEnd;
+  })
+
       .sort((a, b) => b.start.toDate() - a.start.toDate());
 
     if (!monthBookings.length) {
@@ -1097,6 +1138,12 @@ localStorage.setItem("lastEmail", email);
     renderBookingsList();
   });
 
+   technicianFilter.addEventListener("change", () => {
+  currentFilterTechnician = technicianFilter.value;
+  renderCalendar();
+  renderBookingsList();
+});
+
   // -------------------------
   // Auth gating + Firestore subscription
   // -------------------------
@@ -1141,12 +1188,22 @@ localStorage.setItem("lastEmail", email);
     userLabelEl.textContent = currentProfile.displayName || (user.email || "User");
 
     // Lock technician select if technician role
-    if (isTechnician()) {
-      technicianSelect.value = currentProfile.technicianName || TECHNICIANS[0];
-      technicianSelect.disabled = true;
-    } else {
-      technicianSelect.disabled = false;
-    }
+   if (isTechnician()) {
+  technicianSelect.value = currentProfile?.technicianName || TECHNICIANS[0];
+  technicianSelect.disabled = true;
+
+  // TECHNICIAN: tylko swoje
+  filterContainer.style.display = "none";
+  currentFilterTechnician = currentProfile?.technicianName;
+
+} else {
+  technicianSelect.disabled = false;
+
+  // ADMIN / RESEARCHER
+  filterContainer.style.display = "block";
+  currentFilterTechnician = "ALL";
+}
+
 
     resetFormToNew();
 
@@ -1177,6 +1234,7 @@ localStorage.setItem("lastEmail", email);
   
 </body>
 </html>
+
 
 
 
