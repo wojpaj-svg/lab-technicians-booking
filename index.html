@@ -391,6 +391,8 @@
 
   import {
     getAuth,
+    setPersistence,
+  browserLocalPersistence,
     onAuthStateChanged,
     signInWithEmailAndPassword,
     sendPasswordResetEmail,
@@ -415,7 +417,7 @@
   // Firebase init
   // -------------------------
   const firebaseConfig = {
-    apiKey: "AIzaSyBz9WjF4aUhrCujzpzn4DHGX1MW--sV7iQ",
+    apiKey: "AIzaSyB4_rAT7I55-9h-5rRRRXastEuPT6srqVs",
     authDomain: "lab-technicians-booking.firebaseapp.com",
     projectId: "lab-technicians-booking",
     storageBucket: "lab-technicians-booking.firebasestorage.app",
@@ -425,7 +427,15 @@
   };
 
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+const auth = getAuth(app);
+
+try {
+  await setPersistence(auth, browserLocalPersistence);
+} catch (e) {
+  console.error("setPersistence failed:", e);
+}
+
+
   const db = getFirestore(app);
 
   const bookingsCol = collection(db, "bookings");
@@ -484,10 +494,26 @@
     const emailEl = modal.querySelector("#loginEmail");
     const passEl = modal.querySelector("#loginPass");
 
+    // --- remember last email + better autofill ---
+emailEl.setAttribute("autocomplete", "email");
+emailEl.setAttribute("name", "email");
+
+passEl.setAttribute("autocomplete", "current-password");
+passEl.setAttribute("name", "password");
+
+const lastEmail = localStorage.getItem("lastEmail");
+if (lastEmail && !emailEl.value) {
+  emailEl.value = lastEmail;
+}
+
+
     modal.querySelector("#btnLogin").addEventListener("click", async () => {
       msg.textContent = "";
       const email = (emailEl.value || "").trim();
       const pass = passEl.value || "";
+localStorage.setItem("lastEmail", email);
+
+      
       if (!email || !pass) {
         msg.textContent = "Please enter email and password.";
         return;
@@ -504,6 +530,9 @@
     modal.querySelector("#btnForgot").addEventListener("click", async () => {
       msg.textContent = "";
       const email = (emailEl.value || "").trim();
+localStorage.setItem("lastEmail", email);
+
+      
       if (!email) {
         msg.textContent = "Type your email first (then click Forgot password).";
         return;
@@ -1148,6 +1177,7 @@
   
 </body>
 </html>
+
 
 
 
