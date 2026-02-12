@@ -386,586 +386,744 @@
     </div>
   </div>
 
-  <script type="module">
-   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      addDoc,
-      onSnapshot,
-      query,
-      where,
-      orderBy,
-      Timestamp,
-      doc,
-      deleteDoc,
-      updateDoc
-    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBz9WjF4aUhrCujzpzn4DHGX1MW--sV7iQ",
-      authDomain: "lab-technicians-booking.firebaseapp.com",
-      projectId: "lab-technicians-booking",
-      storageBucket: "lab-technicians-booking.firebasestorage.app",
-      messagingSenderId: "897254183022",
-      appId: "1:897254183022:web:5ed0e7b98fa5553717967f",
-      measurementId: "G-ZF5Z2GLBK7"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-signInAnonymously(auth);
-    const db = getFirestore(app);
-    const bookingsCol = collection(db, "bookings");
-
-    // technician list for permissions
-    const TECHNICIANS = ["Sasi", "Viviana", "Simon", "Lara", "Stefanija", "Klara"];
-
-// alias -> canonical technician name
-const TECH_ALIASES = {
-  // Sasi aliases:
-  "sasi": "Sasi",
-  "sp": "Sasi",
-  "ps": "Sasi",
-  "sasikala": "Sasi",
-
-  // Viviana aliases (przykład, dopisz jeśli chcesz):
-  "viviana": "Viviana",
-  "vivi": "Viviana",
-
-  // Simon aliases:
-  "simon": "Simon",
-
-  // Lara aliases:
-  "lara": "Lara",
-    "lh": "Lara",
-    "hl": "Lara",
-
-  // Stefanija aliases:
-  "stefanija": "Stefanija",
-  "ss": "Stefanija",
-
-  // Klara aliases:
-  "klara": "Klara",
-   "kg": "Klara"
-};
-
-
-    function normalizeName(str) {
-      return (str || "").trim().toLowerCase();
-    }
-
-    // "Logowanie" – inicjały w localStorage
-    let currentUser = localStorage.getItem("labTechBookingUser");
-    if (!currentUser) {
-      currentUser =
-        prompt(
-          "Type your name / initials (this will be shown as 'created by'):",
-          "WP"
-        ) || "unknown";
-      currentUser = currentUser.trim() || "unknown";
-      localStorage.setItem("labTechBookingUser", currentUser);
-    }
-    document.getElementById("currentUserLabel").textContent = currentUser;
-
-   const currentUserNorm = normalizeName(currentUser);
-const ownTechName = TECH_ALIASES[currentUserNorm] || null;
-const isTechnicianUser = !!ownTechName;
-
-
-    const savedView = JSON.parse(localStorage.getItem("labTechBookingView") || "null");
-
-let currentMonth, currentYear;
-
-if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView.year)) {
-  currentMonth = savedView.month;
-  currentYear = savedView.year;
-} else {
-  const now = new Date();
-  currentMonth = now.getMonth();
-  currentYear = now.getFullYear();
-}
-
-    let bookings = []; // {id, technician, task, start, end, createdBy}
-    let editingBookingId = null;
-
-    const monthTitleEl = document.getElementById("monthTitle");
-    const calendarGridEl = document.getElementById("calendarGrid");
-    const errorEl = document.getElementById("error");
-    const bookingsListEl = document.getElementById("bookingsList");
-
-    const technicianSelect = document.getElementById("technician");
-    const taskInput = document.getElementById("task");
-    const startInput = document.getElementById("start");
-    const endInput = document.getElementById("end");
-    const addBtn = document.getElementById("addBookingBtn");
-
-    // if logged-in user is a technician: lock select to their own name
-    if (isTechnicianUser && ownTechName) {
-      technicianSelect.value = ownTechName;
-      technicianSelect.disabled = true;
-    }
-
-    function toJSDate(value) {
-      if (!value) return null;
-      return new Date(value);
-    }
-
-    // rounding to 00 / 30
-    function roundTo30(date) {
-      const minutes = date.getMinutes();
-      let rounded = Math.round(minutes / 30) * 30;
-      if (rounded === 60) {
-        date.setHours(date.getHours() + 1);
-        rounded = 0;
-      }
-      date.setMinutes(rounded, 0, 0);
-      return date;
-    }
-
-    function toLocalInputValue(d) {
-      const off = d.getTimezoneOffset();
-      const local = new Date(d.getTime() - off * 60 * 1000);
-      return local.toISOString().slice(0, 16);
-    }
-
-    function normalizeInputTo30(input) {
-      if (!input.value) return;
-      const d = toJSDate(input.value);
-      if (!d) return;
-      const rounded = roundTo30(d);
-      input.value = toLocalInputValue(rounded);
-    }
-
-    function sameDay(d1, d2) {
-      return (
-        d1.getFullYear() === d2.getFullYear() &&
-        d1.getMonth() === d2.getMonth() &&
-        d1.getDate() === d2.getDate()
-      );
-    }
-
-    function overlaps(aStart, aEnd, bStart, bEnd) {
-      return aStart < bEnd && bStart < aEnd;
-    }
-
-    function formatDateTime(dt) {
-      return dt.toLocaleString([], {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    }
-
-    function technicianClass(name) {
-      const n = name.toLowerCase();
-      if (n === "sasi") return "sasi";
-      if (n === "viviana") return "viviana";
-      if (n === "simon") return "simon";
-      if (n === "lara") return "lara";
-      if (n === "klara") return "klara";
-      return "stefanija";
-    }
-
-    // --- edit mode: only creator can edit ---
-    function startEdit(booking) {
-      if (booking.createdBy !== currentUser) return;
-
-      editingBookingId = booking.id;
-
-      technicianSelect.value = booking.technician;
-      taskInput.value = booking.task || "";
-
-      const s = booking.start.toDate();
-      const e = booking.end.toDate();
-
-      startInput.value = toLocalInputValue(s);
-      endInput.value = toLocalInputValue(e);
-
-      addBtn.textContent = "Save changes";
-      errorEl.textContent = `Editing assignment created by ${booking.createdBy}.`;
-    }
-
-    function resetFormToNew() {
-      taskInput.value = "";
-      editingBookingId = null;
-      addBtn.textContent = "Add assignment";
-      errorEl.textContent = "";
-      setDefaultDateTimeInputs();
-    }
-
-    function renderCalendar() {
-      calendarGridEl.innerHTML = "";
-
-      const firstDay = new Date(currentYear, currentMonth, 1);
-      const firstWeekday = (firstDay.getDay() + 6) % 7; // Mon = 0
-      const prevMonthDays = firstWeekday;
-      const totalCells = 42;
-
-      const today = new Date();
-
-      for (let i = 0; i < totalCells; i++) {
-        const cell = document.createElement("div");
-        cell.className = "day-cell";
-
-        const dayNumberEl = document.createElement("div");
-        dayNumberEl.className = "day-number";
-
-        const dateObj = new Date(
-          currentYear,
-          currentMonth,
-          1 - prevMonthDays + i
-        );
-        const isCurrentMonth = dateObj.getMonth() === currentMonth;
-
-        if (!isCurrentMonth) {
-          cell.classList.add("other-month");
-        }
-        if (sameDay(dateObj, today)) {
-          cell.classList.add("today");
-        }
-
-        dayNumberEl.textContent = dateObj.getDate();
-        cell.appendChild(dayNumberEl);
-
-        const startOfDay = new Date(dateObj);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(dateObj);
-        endOfDay.setHours(23, 59, 59, 999);
-
-        // bookings for given day
-        const dayBookings = bookings
-          .filter((b) => {
-            const s = b.start.toDate();
-            const e = b.end.toDate();
-            return overlaps(s, e, startOfDay, endOfDay);
-          })
-          .sort((a, b) => {
-            const sa = a.start.toDate().getTime();
-            const sb = b.start.toDate().getTime();
-            if (sa !== sb) return sa - sb;
-            const ea = a.end.toDate().getTime();
-            const eb = b.end.toDate().getTime();
-            return ea - eb;
-          });
-
-        // group by same time range
-        let lastKey = null;
-        let currentRow = null;
-
-        dayBookings.forEach((b) => {
-          const s = b.start.toDate();
-          const e = b.end.toDate();
-
-          const key = `${s.getTime()}-${e.getTime()}`;
-          if (key !== lastKey) {
-            currentRow = document.createElement("div");
-            currentRow.className = "slot-row";
-            cell.appendChild(currentRow);
-            lastKey = key;
-          }
-
-          const pill = document.createElement("div");
-          pill.className = "pill " + technicianClass(b.technician);
-
-          const timeLabel = sameDay(s, e)
-            ? `${s.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit"
-              })}-${e.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit"
-              })}`
-            : `${s.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit"
-              })} → ${e.toLocaleDateString([], {
-                month: "2-digit",
-                day: "2-digit"
-              })}`;
-
-          pill.textContent = `${b.technician}: ${
-            b.task || "assignment"
-          } (${timeLabel})`;
-          pill.title =
-            `${b.technician} – ${b.task || "assignment"}\n` +
-            `${formatDateTime(s)}  →  ${formatDateTime(e)}\n` +
-            `Created by: ${b.createdBy}`;
-
-          pill.addEventListener("click", async (ev) => {
-            ev.stopPropagation();
-            if (b.createdBy !== currentUser) {
-              alert(
-                `This assignment was created by ${b.createdBy}. You cannot delete it.`
-              );
-              return;
-            }
-            const ok = confirm(
-              `${b.technician} – ${b.task || "assignment"}\n` +
-                `${formatDateTime(s)} → ${formatDateTime(e)}\n\n` +
-                `Delete this assignment?`
-            );
-            if (ok) {
-              await deleteDoc(doc(bookingsCol, b.id));
-            }
-          });
-
-          currentRow.appendChild(pill);
-        });
-
-        calendarGridEl.appendChild(cell);
-      }
-
-      const monthName = new Date(currentYear, currentMonth, 1).toLocaleString(
-        "en",
-        {
-          month: "long",
-          year: "numeric"
-        }
-      );
-      monthTitleEl.textContent = monthName;
-    }
-
-    function renderBookingsList() {
-  bookingsListEl.innerHTML = "";
-
-        const monthStart = new Date(currentYear, currentMonth, 1);
-  const monthEnd = new Date(currentYear, currentMonth + 1, 1);
-
-   const monthBookings = bookings
-    .filter(b => {
-      const s = b.start.toDate();
-      return s >= monthStart && s < monthEnd;
-    })
-    .sort((a, b) => b.start.toDate() - a.start.toDate());
-
-  if (!monthBookings.length) {
-    bookingsListEl.textContent = "No assignments in this month.";
-    return;
-  }
-
-  monthBookings.forEach((b) => {
-
-
-        const wrapper = document.createElement("div");
-        wrapper.style.padding = "8px 10px";
-        wrapper.style.marginTop = "6px";
-        wrapper.style.borderRadius = "10px";
-        wrapper.style.background = "#eef3ff";
-
-        const s = b.start.toDate();
-        const e = b.end.toDate();
-
-        const line1 = document.createElement("div");
-        line1.style.fontSize = "12px";
-        line1.innerHTML = `<strong>${b.technician}</strong> – ${
-          b.task || "assignment"
-        }`;
-
-        const line2 = document.createElement("div");
-        line2.style.fontSize = "11px";
-        line2.textContent = `${formatDateTime(s)} → ${formatDateTime(e)}`;
-
-        const line3 = document.createElement("div");
-        line3.style.fontSize = "11px";
-        line3.textContent = `Created by: ${b.createdBy}`;
-
-        wrapper.appendChild(line1);
-        wrapper.appendChild(line2);
-        wrapper.appendChild(line3);
-
-        const actions = document.createElement("div");
-        actions.style.display = "flex";
-        actions.style.justifyContent = "flex-end";
-        actions.style.gap = "6px";
-        actions.style.marginTop = "4px";
-        actions.style.alignItems = "center";
-
-        if (b.createdBy === currentUser) {
-          const editBtn = document.createElement("button");
-          editBtn.textContent = "Edit";
-          editBtn.className = "btn-secondary";
-          editBtn.style.fontSize = "11px";
-          editBtn.style.padding = "3px 10px";
-          editBtn.addEventListener("click", () => startEdit(b));
-          actions.appendChild(editBtn);
-
-          const delBtn = document.createElement("button");
-          delBtn.textContent = "Delete";
-          delBtn.className = "btn-secondary";
-          delBtn.style.fontSize = "11px";
-          delBtn.style.padding = "3px 10px";
-          delBtn.style.background = "#fee2e2";
-          delBtn.style.border = "1px solid #fecaca";
-          delBtn.style.color = "#b91c1c";
-
-          delBtn.addEventListener("click", async () => {
-            const ok = confirm(
-              `${b.technician} – ${b.task || "assignment"}\n` +
-                `${formatDateTime(s)} → ${formatDateTime(e)}\n\n` +
-                `Delete this assignment?`
-            );
-            if (ok) {
-              await deleteDoc(doc(bookingsCol, b.id));
-            }
-          });
-
-          actions.appendChild(delBtn);
-        } else {
-          const ro = document.createElement("div");
-          ro.style.fontSize = "10px";
-          ro.style.color = "#6b7280";
-          ro.textContent = "read-only";
-          actions.appendChild(ro);
-        }
-
-        wrapper.appendChild(actions);
-        bookingsListEl.appendChild(wrapper);
-      });
-    }
-
-    // rounding on inputs
-    ["change", "blur"].forEach((evName) => {
-      startInput.addEventListener(evName, () => normalizeInputTo30(startInput));
-      endInput.addEventListener(evName, () => normalizeInputTo30(endInput));
-    });
-
-    addBtn.addEventListener("click", async () => {
-      errorEl.textContent = "";
-
-      // rounding first
-      normalizeInputTo30(startInput);
-      normalizeInputTo30(endInput);
-
-      let technician = technicianSelect.value;
-      const task = taskInput.value.trim();
-      const start = toJSDate(startInput.value);
-      const end = toJSDate(endInput.value);
-
-      if (isTechnicianUser && ownTechName) {
-        technician = ownTechName;
-        technicianSelect.value = ownTechName;
-      }
-
-      if (!technician || !start || !end) {
-        errorEl.textContent = "Please fill technician and both dates.";
+ <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+
+  import {
+    getAuth,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    sendPasswordResetEmail,
+    signOut
+  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    onSnapshot,
+    query,
+    orderBy,
+    Timestamp,
+    doc,
+    deleteDoc,
+    updateDoc,
+    getDoc
+  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+  // -------------------------
+  // Firebase init
+  // -------------------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyBz9WjF4aUhrCujzpzn4DHGX1MW--sV7iQ",
+    authDomain: "lab-technicians-booking.firebaseapp.com",
+    projectId: "lab-technicians-booking",
+    storageBucket: "lab-technicians-booking.firebasestorage.app",
+    messagingSenderId: "897254183022",
+    appId: "1:897254183022:web:5ed0e7b98fa5553717967f",
+    measurementId: "G-ZF5Z2GLBK7"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const bookingsCol = collection(db, "bookings");
+
+  // -------------------------
+  // UI helpers: login modal
+  // -------------------------
+  const appRoot = document.querySelector(".app");
+  const userLabelEl = document.getElementById("currentUserLabel");
+  const errorEl = document.getElementById("error");
+
+  function ensureLoginModal() {
+    if (document.getElementById("loginModal")) return;
+
+    const modal = document.createElement("div");
+    modal.id = "loginModal";
+    modal.style.position = "fixed";
+    modal.style.inset = "0";
+    modal.style.background = "rgba(15,23,42,0.45)";
+    modal.style.display = "flex";
+    modal.style.alignItems = "center";
+    modal.style.justifyContent = "center";
+    modal.style.zIndex = "9999";
+    modal.innerHTML = `
+      <div style="width:min(520px, 92vw); background:#fff; border-radius:16px; padding:18px; box-shadow: 0 15px 35px rgba(0,0,0,0.18);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="font-weight:700;">Sign in</div>
+          <div style="font-size:12px; color:#6b7280;">Email + password</div>
+        </div>
+
+        <div style="display:grid; gap:10px;">
+          <div>
+            <label style="font-size:11px; color:#6b7280; display:block; margin-bottom:4px;">Email</label>
+            <input id="loginEmail" type="email" style="width:100%; padding:10px; border:1px solid #d5dde8; border-radius:10px;" placeholder="name@innorenew.eu" />
+          </div>
+          <div>
+            <label style="font-size:11px; color:#6b7280; display:block; margin-bottom:4px;">Password</label>
+            <input id="loginPass" type="password" style="width:100%; padding:10px; border:1px solid #d5dde8; border-radius:10px;" placeholder="••••••••" />
+          </div>
+
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px;">
+            <button id="btnLogin" style="border:none; border-radius:999px; padding:8px 14px; background:#0ea5e9; color:#fff; cursor:pointer;">Sign in</button>
+            <button id="btnForgot" style="border:none; border-radius:999px; padding:8px 14px; background:#e5e7eb; cursor:pointer;">Forgot password</button>
+            <div id="loginMsg" style="font-size:12px; color:#dc2626;"></div>
+          </div>
+
+          <div style="font-size:11px; color:#6b7280; margin-top:4px; line-height:1.35;">
+            If you have a temporary password, sign in once and then use <b>Forgot password</b> to set your own.
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const msg = modal.querySelector("#loginMsg");
+    const emailEl = modal.querySelector("#loginEmail");
+    const passEl = modal.querySelector("#loginPass");
+
+    modal.querySelector("#btnLogin").addEventListener("click", async () => {
+      msg.textContent = "";
+      const email = (emailEl.value || "").trim();
+      const pass = passEl.value || "";
+      if (!email || !pass) {
+        msg.textContent = "Please enter email and password.";
         return;
       }
-      if (end <= start) {
-        errorEl.textContent = "End must be later than start.";
-        return;
-      }
-
-      // Overbooking check for THIS technician
-      const conflicts = bookings.filter((b) => {
-        if (b.technician !== technician) return false;
-        if (editingBookingId && b.id === editingBookingId) return false;
-        const s = b.start.toDate();
-        const e = b.end.toDate();
-        return overlaps(start, end, s, e);
-      });
-
-      if (conflicts.length > 0) {
-        const c = conflicts[0];
-        const s = c.start.toDate();
-        const e = c.end.toDate();
-        errorEl.textContent =
-          `Overbooking: ${technician} is already booked on ${s.toLocaleDateString()} ` +
-          `(${s.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit"
-          })}–` +
-          `${e.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit"
-          })}).`;
-        return;
-      }
-
-      // limit: technicians can book max 3h/day for themselves
-      if (isTechnicianUser && ownTechName) {
-        const bookingDay = start;
-        const dayBookings = bookings.filter((b) => {
-          if (b.technician !== ownTechName) return false;
-          if (editingBookingId && b.id === editingBookingId) return false;
-          const s = b.start.toDate();
-          return sameDay(s, bookingDay);
-        });
-
-        let usedHours = 0;
-        dayBookings.forEach((b) => {
-          const s = b.start.toDate();
-          const e = b.end.toDate();
-          usedHours += (e - s) / (1000 * 60 * 60);
-        });
-
-        const newHours = (end - start) / (1000 * 60 * 60);
-        if (usedHours + newHours > 3.01) {
-          errorEl.textContent =
-            "Technicians can book themselves for up to 3 hours per day.";
-          return;
-        }
-      }
-
       try {
-        if (!editingBookingId) {
-          // new assignment
-          await addDoc(bookingsCol, {
-            technician,
-            task,
-            start: Timestamp.fromDate(start),
-            end: Timestamp.fromDate(end),
-            createdBy: currentUser,
-            createdAt: Timestamp.now()
-          });
-        } else {
-          // update existing assignment
-          const ref = doc(bookingsCol, editingBookingId);
-          await updateDoc(ref, {
-            technician,
-            task,
-            start: Timestamp.fromDate(start),
-            end: Timestamp.fromDate(end)
-          });
-        }
-
-        resetFormToNew();
+        await signInWithEmailAndPassword(auth, email, pass);
+        // onAuthStateChanged will close modal
       } catch (e) {
         console.error(e);
-        errorEl.textContent = "Error while saving booking.";
+        msg.textContent = "Login failed. Check email/password.";
       }
     });
 
-    document.getElementById("prevMonth").addEventListener("click", () => {
-      currentMonth--;
-      if (currentMonth < 0) {
-        currentMonth = 11;
-        currentYear--;
+    modal.querySelector("#btnForgot").addEventListener("click", async () => {
+      msg.textContent = "";
+      const email = (emailEl.value || "").trim();
+      if (!email) {
+        msg.textContent = "Type your email first (then click Forgot password).";
+        return;
       }
-      renderCalendar();
-    });
-    document.getElementById("nextMonth").addEventListener("click", () => {
-      currentMonth++;
-      if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
+      try {
+        await sendPasswordResetEmail(auth, email);
+        msg.style.color = "#16a34a";
+        msg.textContent = "Password reset email sent.";
+      } catch (e) {
+        console.error(e);
+        msg.style.color = "#dc2626";
+        msg.textContent = "Could not send reset email (check address).";
       }
-      renderCalendar();
     });
-    document.getElementById("todayBtn").addEventListener("click", () => {
-      const now = new Date();
-      currentMonth = now.getMonth();
-      currentYear = now.getFullYear();
-      renderCalendar();
+  }
+
+  function showLogin() {
+    ensureLoginModal();
+    document.getElementById("loginModal").style.display = "flex";
+    appRoot.style.filter = "blur(3px)";
+    appRoot.style.pointerEvents = "none";
+  }
+
+  function hideLogin() {
+    const modal = document.getElementById("loginModal");
+    if (modal) modal.style.display = "none";
+    appRoot.style.filter = "";
+    appRoot.style.pointerEvents = "";
+  }
+
+  // -------------------------
+  // Roles / profile (from Firestore /users/{uid})
+  // -------------------------
+  let currentProfile = null; // { role, displayName, technicianName }
+  let currentEmail = null;
+  let currentUid = null;
+
+  async function loadProfile(uid) {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (!snap.exists()) return null;
+    return snap.data();
+  }
+
+  function isAdmin() {
+    return currentProfile?.role === "admin";
+  }
+  function isResearcher() {
+    return currentProfile?.role === "researcher";
+  }
+  function isTechnician() {
+    return currentProfile?.role === "technician";
+  }
+
+  // -------------------------
+  // Your existing UI elements
+  // -------------------------
+  const monthTitleEl = document.getElementById("monthTitle");
+  const calendarGridEl = document.getElementById("calendarGrid");
+  const bookingsListEl = document.getElementById("bookingsList");
+
+  const technicianSelect = document.getElementById("technician");
+  const taskInput = document.getElementById("task");
+  const startInput = document.getElementById("start");
+  const endInput = document.getElementById("end");
+  const addBtn = document.getElementById("addBookingBtn");
+
+  // Add a logout button in header (minimal)
+  (function addLogoutBtnOnce() {
+    if (document.getElementById("btnLogout")) return;
+    const header = document.querySelector(".app-header");
+    const btn = document.createElement("button");
+    btn.id = "btnLogout";
+    btn.className = "btn-secondary";
+    btn.textContent = "Logout";
+    btn.style.fontSize = "11px";
+    btn.style.padding = "6px 12px";
+    btn.addEventListener("click", async () => {
+      await signOut(auth);
+    });
+    header.appendChild(btn);
+  })();
+
+  // -------------------------
+  // Calendar logic (mostly your original)
+  // -------------------------
+  const TECHNICIANS = ["Sasi", "Viviana", "Simon", "Lara", "Stefanija", "Klara"];
+
+  function toJSDate(value) {
+    if (!value) return null;
+    return new Date(value);
+  }
+
+  function roundTo30(date) {
+    const minutes = date.getMinutes();
+    let rounded = Math.round(minutes / 30) * 30;
+    if (rounded === 60) {
+      date.setHours(date.getHours() + 1);
+      rounded = 0;
+    }
+    date.setMinutes(rounded, 0, 0);
+    return date;
+  }
+
+  function toLocalInputValue(d) {
+    const off = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - off * 60 * 1000);
+    return local.toISOString().slice(0, 16);
+  }
+
+  function normalizeInputTo30(input) {
+    if (!input.value) return;
+    const d = toJSDate(input.value);
+    if (!d) return;
+    const rounded = roundTo30(d);
+    input.value = toLocalInputValue(rounded);
+  }
+
+  function sameDay(d1, d2) {
+    return (
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate()
+    );
+  }
+
+  function overlaps(aStart, aEnd, bStart, bEnd) {
+    return aStart < bEnd && bStart < aEnd;
+  }
+
+  function formatDateTime(dt) {
+    return dt.toLocaleString([], {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  function technicianClass(name) {
+    const n = (name || "").toLowerCase();
+    if (n === "sasi") return "sasi";
+    if (n === "viviana") return "viviana";
+    if (n === "simon") return "simon";
+    if (n === "lara") return "lara";
+    if (n === "klara") return "klara";
+    return "stefanija";
+  }
+
+  // View (persist month/year)
+  const savedView = JSON.parse(localStorage.getItem("labTechBookingView") || "null");
+  let currentMonth, currentYear;
+  if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView.year)) {
+    currentMonth = savedView.month;
+    currentYear = savedView.year;
+  } else {
+    const now = new Date();
+    currentMonth = now.getMonth();
+    currentYear = now.getFullYear();
+  }
+
+  function persistView() {
+    localStorage.setItem("labTechBookingView", JSON.stringify({ month: currentMonth, year: currentYear }));
+  }
+
+  let bookings = []; // docs
+  let editingBookingId = null;
+
+  // Permissions for UI actions
+  function canEditOrDelete(booking) {
+    if (isAdmin()) return true;
+
+    // Legacy bookings (no createdByEmail) => read-only for non-admin
+    if (!booking.createdByEmail) return false;
+
+    if (isResearcher()) {
+      return booking.createdByEmail === currentEmail;
+    }
+    if (isTechnician()) {
+      return booking.createdByEmail === currentEmail && booking.technician === currentProfile?.technicianName;
+    }
+    return false;
+  }
+
+  function canCreateForTechnician(targetTechnician) {
+    if (isAdmin()) return true;
+    if (isResearcher()) return true;
+    if (isTechnician()) return targetTechnician === currentProfile?.technicianName;
+    return false;
+  }
+
+  function setDefaultDateTimeInputs() {
+    const now = new Date();
+    const round = Math.ceil(now.getMinutes() / 30) * 30;
+    now.setMinutes(round, 0, 0);
+    const end = new Date(now.getTime() + 60 * 60 * 1000);
+
+    startInput.value = toLocalInputValue(now);
+    endInput.value = toLocalInputValue(end);
+  }
+
+  function resetFormToNew() {
+    taskInput.value = "";
+    editingBookingId = null;
+    addBtn.textContent = "Add assignment";
+    errorEl.textContent = "";
+    setDefaultDateTimeInputs();
+
+    // restore technician select behavior
+    if (isTechnician()) {
+      technicianSelect.value = currentProfile?.technicianName || TECHNICIANS[0];
+      technicianSelect.disabled = true;
+    } else {
+      technicianSelect.disabled = false;
+    }
+  }
+
+  function startEdit(booking) {
+    if (!canEditOrDelete(booking)) return;
+
+    editingBookingId = booking.id;
+
+    technicianSelect.value = booking.technician;
+    taskInput.value = booking.task || "";
+
+    const s = booking.start.toDate();
+    const e = booking.end.toDate();
+
+    startInput.value = toLocalInputValue(s);
+    endInput.value = toLocalInputValue(e);
+
+    addBtn.textContent = "Save changes";
+    errorEl.textContent = `Editing assignment.`;
+  }
+
+  function renderCalendar() {
+    calendarGridEl.innerHTML = "";
+
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const firstWeekday = (firstDay.getDay() + 6) % 7; // Mon=0
+    const prevMonthDays = firstWeekday;
+    const totalCells = 42;
+
+    const today = new Date();
+
+    for (let i = 0; i < totalCells; i++) {
+      const cell = document.createElement("div");
+      cell.className = "day-cell";
+
+      const dayNumberEl = document.createElement("div");
+      dayNumberEl.className = "day-number";
+
+      const dateObj = new Date(currentYear, currentMonth, 1 - prevMonthDays + i);
+      const isCurrentMonth = dateObj.getMonth() === currentMonth;
+
+      if (!isCurrentMonth) cell.classList.add("other-month");
+      if (sameDay(dateObj, today)) cell.classList.add("today");
+
+      dayNumberEl.textContent = dateObj.getDate();
+      cell.appendChild(dayNumberEl);
+
+      const startOfDay = new Date(dateObj);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(dateObj);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const dayBookings = bookings
+        .filter((b) => {
+          const s = b.start.toDate();
+          const e = b.end.toDate();
+          return overlaps(s, e, startOfDay, endOfDay);
+        })
+        .sort((a, b) => a.start.toDate() - b.start.toDate());
+
+      let lastKey = null;
+      let currentRow = null;
+
+      dayBookings.forEach((b) => {
+        const s = b.start.toDate();
+        const e = b.end.toDate();
+        const key = `${s.getTime()}-${e.getTime()}`;
+
+        if (key !== lastKey) {
+          currentRow = document.createElement("div");
+          currentRow.className = "slot-row";
+          cell.appendChild(currentRow);
+          lastKey = key;
+        }
+
+        const pill = document.createElement("div");
+        pill.className = "pill " + technicianClass(b.technician);
+
+        const timeLabel = sameDay(s, e)
+          ? `${s.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}-${e.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit"
+            })}`
+          : `${s.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} → ${e.toLocaleDateString([], {
+              month: "2-digit",
+              day: "2-digit"
+            })}`;
+
+        pill.textContent = `${b.technician}: ${b.task || "assignment"} (${timeLabel})`;
+
+        const createdLabel = b.createdByDisplayName || b.createdByEmail || b.createdBy || "unknown";
+        pill.title =
+          `${b.technician} – ${b.task || "assignment"}\n` +
+          `${formatDateTime(s)}  →  ${formatDateTime(e)}\n` +
+          `Created by: ${createdLabel}`;
+
+        pill.addEventListener("click", async (ev) => {
+          ev.stopPropagation();
+
+          // legacy => no action for non-admin
+          if (!canEditOrDelete(b)) {
+            alert("Read-only (you cannot edit/delete this assignment).");
+            return;
+          }
+
+          const ok = confirm(
+            `${b.technician} – ${b.task || "assignment"}\n` +
+              `${formatDateTime(s)} → ${formatDateTime(e)}\n\n` +
+              `Delete this assignment?`
+          );
+          if (ok) {
+            await deleteDoc(doc(bookingsCol, b.id));
+          }
+        });
+
+        currentRow.appendChild(pill);
+      });
+
+      calendarGridEl.appendChild(cell);
+    }
+
+    const monthName = new Date(currentYear, currentMonth, 1).toLocaleString("en", { month: "long", year: "numeric" });
+    monthTitleEl.textContent = monthName;
+    persistView();
+  }
+
+  function renderBookingsList() {
+    bookingsListEl.innerHTML = "";
+
+    const monthStart = new Date(currentYear, currentMonth, 1);
+    const monthEnd = new Date(currentYear, currentMonth + 1, 1);
+
+    const monthBookings = bookings
+      .filter((b) => {
+        const s = b.start.toDate();
+        return s >= monthStart && s < monthEnd;
+      })
+      .sort((a, b) => b.start.toDate() - a.start.toDate());
+
+    if (!monthBookings.length) {
+      bookingsListEl.textContent = "No assignments in this month.";
+      return;
+    }
+
+    monthBookings.forEach((b) => {
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "8px 10px";
+      wrapper.style.marginTop = "6px";
+      wrapper.style.borderRadius = "10px";
+      wrapper.style.background = "#eef3ff";
+
+      const s = b.start.toDate();
+      const e = b.end.toDate();
+
+      const line1 = document.createElement("div");
+      line1.style.fontSize = "12px";
+      line1.innerHTML = `<strong>${b.technician}</strong> – ${b.task || "assignment"}`;
+
+      const line2 = document.createElement("div");
+      line2.style.fontSize = "11px";
+      line2.textContent = `${formatDateTime(s)} → ${formatDateTime(e)}`;
+
+      const createdLabel = b.createdByDisplayName || b.createdByEmail || b.createdBy || "unknown";
+      const line3 = document.createElement("div");
+      line3.style.fontSize = "11px";
+      line3.textContent = `Created by: ${createdLabel}`;
+
+      wrapper.appendChild(line1);
+      wrapper.appendChild(line2);
+      wrapper.appendChild(line3);
+
+      const actions = document.createElement("div");
+      actions.style.display = "flex";
+      actions.style.justifyContent = "flex-end";
+      actions.style.gap = "6px";
+      actions.style.marginTop = "4px";
+      actions.style.alignItems = "center";
+
+      if (canEditOrDelete(b)) {
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Edit";
+        editBtn.className = "btn-secondary";
+        editBtn.style.fontSize = "11px";
+        editBtn.style.padding = "3px 10px";
+        editBtn.addEventListener("click", () => startEdit(b));
+        actions.appendChild(editBtn);
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.className = "btn-secondary";
+        delBtn.style.fontSize = "11px";
+        delBtn.style.padding = "3px 10px";
+        delBtn.style.background = "#fee2e2";
+        delBtn.style.border = "1px solid #fecaca";
+        delBtn.style.color = "#b91c1c";
+        delBtn.addEventListener("click", async () => {
+          const ok = confirm(
+            `${b.technician} – ${b.task || "assignment"}\n` + `${formatDateTime(s)} → ${formatDateTime(e)}\n\nDelete?`
+          );
+          if (ok) await deleteDoc(doc(bookingsCol, b.id));
+        });
+        actions.appendChild(delBtn);
+      } else {
+        const ro = document.createElement("div");
+        ro.style.fontSize = "10px";
+        ro.style.color = "#6b7280";
+        ro.textContent = "read-only";
+        actions.appendChild(ro);
+      }
+
+      wrapper.appendChild(actions);
+      bookingsListEl.appendChild(wrapper);
+    });
+  }
+
+  // rounding on inputs
+  ["change", "blur"].forEach((evName) => {
+    startInput.addEventListener(evName, () => normalizeInputTo30(startInput));
+    endInput.addEventListener(evName, () => normalizeInputTo30(endInput));
+  });
+
+  addBtn.addEventListener("click", async () => {
+    errorEl.textContent = "";
+
+    normalizeInputTo30(startInput);
+    normalizeInputTo30(endInput);
+
+    let technician = technicianSelect.value;
+    const task = taskInput.value.trim();
+    const start = toJSDate(startInput.value);
+    const end = toJSDate(endInput.value);
+
+    if (!technician || !start || !end) {
+      errorEl.textContent = "Please fill technician and both dates.";
+      return;
+    }
+    if (end <= start) {
+      errorEl.textContent = "End must be later than start.";
+      return;
+    }
+
+    // Enforce: technician can only create for themselves
+    if (!canCreateForTechnician(technician)) {
+      errorEl.textContent = "You cannot create bookings for other technicians.";
+      return;
+    }
+
+    // Overbooking check for THIS technician
+    const conflicts = bookings.filter((b) => {
+      if (b.technician !== technician) return false;
+      if (editingBookingId && b.id === editingBookingId) return false;
+      const s = b.start.toDate();
+      const e = b.end.toDate();
+      return overlaps(start, end, s, e);
     });
 
+    if (conflicts.length > 0) {
+      const c = conflicts[0];
+      const s = c.start.toDate();
+      const e = c.end.toDate();
+      errorEl.textContent =
+        `Overbooking: ${technician} is already booked on ${s.toLocaleDateString()} ` +
+        `(${s.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}–` +
+        `${e.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}).`;
+      return;
+    }
+
+    // Optional: your 3h/day limit for technicians booking themselves (still in UI)
+    if (isTechnician() && currentProfile?.technicianName) {
+      const bookingDay = start;
+      const dayBookings = bookings.filter((b) => {
+        if (b.technician !== currentProfile.technicianName) return false;
+        if (editingBookingId && b.id === editingBookingId) return false;
+        const s = b.start.toDate();
+        return sameDay(s, bookingDay) && b.createdByEmail === currentEmail; // only "self-bookings"
+      });
+
+      let usedHours = 0;
+      dayBookings.forEach((b) => {
+        const s = b.start.toDate();
+        const e = b.end.toDate();
+        usedHours += (e - s) / (1000 * 60 * 60);
+      });
+
+      const newHours = (end - start) / (1000 * 60 * 60);
+      if (usedHours + newHours > 3.01) {
+        errorEl.textContent = "Technicians can book themselves for up to 3 hours per day.";
+        return;
+      }
+    }
+
+    try {
+      if (!editingBookingId) {
+        await addDoc(bookingsCol, {
+          technician,
+          task,
+          start: Timestamp.fromDate(start),
+          end: Timestamp.fromDate(end),
+          createdAt: Timestamp.now(),
+
+          // NEW canonical fields
+          createdByEmail: currentEmail,
+          createdByUid: currentUid,
+          createdByDisplayName: currentProfile?.displayName || currentEmail
+        });
+      } else {
+        const ref = doc(bookingsCol, editingBookingId);
+        await updateDoc(ref, {
+          technician,
+          task,
+          start: Timestamp.fromDate(start),
+          end: Timestamp.fromDate(end)
+        });
+      }
+
+      resetFormToNew();
+    } catch (e) {
+      console.error(e);
+      errorEl.textContent = "Error while saving booking.";
+    }
+  });
+
+  document.getElementById("prevMonth").addEventListener("click", () => {
+    currentMonth--;
+    if (currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    }
+    renderCalendar();
+    renderBookingsList();
+  });
+
+  document.getElementById("nextMonth").addEventListener("click", () => {
+    currentMonth++;
+    if (currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+    renderCalendar();
+    renderBookingsList();
+  });
+
+  document.getElementById("todayBtn").addEventListener("click", () => {
+    const now = new Date();
+    currentMonth = now.getMonth();
+    currentYear = now.getFullYear();
+    renderCalendar();
+    renderBookingsList();
+  });
+
+  // -------------------------
+  // Auth gating + Firestore subscription
+  // -------------------------
+  let unsubscribeBookings = null;
+
+  onAuthStateChanged(auth, async (user) => {
+    // stop previous listener
+    if (unsubscribeBookings) {
+      unsubscribeBookings();
+      unsubscribeBookings = null;
+    }
+
+    if (!user) {
+      currentProfile = null;
+      currentEmail = null;
+      currentUid = null;
+
+      userLabelEl.textContent = "";
+      showLogin();
+      bookings = [];
+      renderCalendar();
+      renderBookingsList();
+      return;
+    }
+
+    hideLogin();
+
+    currentEmail = user.email || null;
+    currentUid = user.uid;
+
+    // Require profile in /users/{uid}
+    currentProfile = await loadProfile(user.uid);
+
+    if (!currentProfile) {
+      // Signed in but not provisioned => lock
+      userLabelEl.textContent = user.email || "Unknown";
+      alert("Your account is not provisioned in the system. Contact admin.");
+      await signOut(auth);
+      return;
+    }
+
+    userLabelEl.textContent = currentProfile.displayName || (user.email || "User");
+
+    // Lock technician select if technician role
+    if (isTechnician()) {
+      technicianSelect.value = currentProfile.technicianName || TECHNICIANS[0];
+      technicianSelect.disabled = true;
+    } else {
+      technicianSelect.disabled = false;
+    }
+
+    resetFormToNew();
+
+    // Subscribe
     const qBookings = query(bookingsCol, orderBy("start"));
-    onSnapshot(qBookings, (snapshot) => {
+    unsubscribeBookings = onSnapshot(qBookings, (snapshot) => {
       bookings = snapshot.docs.map((docSnap) => ({
         id: docSnap.id,
         ...docSnap.data()
@@ -977,57 +1135,20 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
         resetFormToNew();
       }
     });
+  });
 
-    function setDefaultDateTimeInputs() {
-      const now = new Date();
-      const round = Math.ceil(now.getMinutes() / 30) * 30;
-      now.setMinutes(round, 0, 0);
-      const end = new Date(now.getTime() + 60 * 60 * 1000);
+  // initial UI
+  setDefaultDateTimeInputs();
+  renderCalendar();
+  renderBookingsList();
+</script>
 
-      function toInputValue(d) {
-        const off = d.getTimezoneOffset();
-        const local = new Date(d.getTime() - off * 60 * 1000);
-        return local.toISOString().slice(0, 16);
-      }
-
-      startInput.value = toInputValue(now);
-      endInput.value = toInputValue(end);
-    }
-
-    setDefaultDateTimeInputs();
-    renderCalendar();
-
-// ===== TEMP BACKUP EXPORT =====
-window.exportBookings = async function () {
-  try {
-    const snap = await getDocs(collection(db, "bookings"));
-    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    const blob = new Blob(
-      [JSON.stringify(data, null, 2)],
-      { type: "application/json" }
-    );
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "bookings-backup.json";
-    a.click();
-    URL.revokeObjectURL(url);
-
-    console.log("✅ Backup downloaded:", data.length, "documents");
-  } catch (e) {
-    console.error("❌ Backup failed:", e);
-  }
-};
-
-    
-  </script>
 
 
   
 </body>
 </html>
+
 
 
 
