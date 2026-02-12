@@ -995,9 +995,39 @@ if (savedView && Number.isInteger(savedView.month) && Number.isInteger(savedView
 
     setDefaultDateTimeInputs();
     renderCalendar();
+
+// ===== TEMP BACKUP EXPORT =====
+window.exportBookings = async function () {
+  try {
+    const snap = await getDocs(collection(db, "bookings"));
+    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const blob = new Blob(
+      [JSON.stringify(data, null, 2)],
+      { type: "application/json" }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "bookings-backup.json";
+    a.click();
+    URL.revokeObjectURL(url);
+
+    console.log("✅ Backup downloaded:", data.length, "documents");
+  } catch (e) {
+    console.error("❌ Backup failed:", e);
+  }
+};
+
+    
   </script>
+
+
+  
 </body>
 </html>
+
 
 
 
