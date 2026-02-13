@@ -284,6 +284,65 @@
         grid-template-columns: 1fr;
       }
     }
+
+  /* --- Booking modal --- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.modal-card {
+  width: min(560px, 92vw);
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.18);
+  border: 1px solid var(--border);
+}
+.modal-row {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.modal-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.modal-title strong { font-size: 14px; }
+.modal-close {
+  border: none;
+  background: #e5e7eb;
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.modal-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.modal-error {
+  font-size: 11px;
+  color: #dc2626;
+  margin-top: 8px;
+}
+
+  
+  
   </style>
 </head>
 <body>
@@ -399,6 +458,70 @@
       </div>
     </div>
   </div>
+
+
+<!-- Booking details / edit modal -->
+<div id="bookingModal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-title">
+      <strong id="bmTitle">Assignment</strong>
+      <button class="modal-close" id="bmClose">Close</button>
+    </div>
+
+    <div class="modal-hint" id="bmMeta"></div>
+
+    <!-- VIEW MODE -->
+    <div id="bmView" class="modal-row">
+      <div><b>Technician:</b> <span id="bmTech"></span></div>
+      <div><b>Task:</b> <span id="bmTask"></span></div>
+      <div><b>From:</b> <span id="bmFrom"></span></div>
+      <div><b>To:</b> <span id="bmTo"></span></div>
+      <div><b>Created by:</b> <span id="bmBy"></span></div>
+    </div>
+
+    <!-- EDIT MODE -->
+    <div id="bmEdit" class="modal-row" style="display:none;">
+      <div>
+        <label style="font-size:11px; color:#6b7280; display:block; margin-bottom:4px;">Technician</label>
+        <select id="bmEditTech" style="width:100%; padding:8px; border-radius:10px; border:1px solid #d5dde8;">
+          <option value="Sasi">Sasi</option>
+          <option value="Viviana">Viviana</option>
+          <option value="Simon">Simon</option>
+          <option value="Lara">Lara</option>
+          <option value="Stefanija">Stefanija</option>
+          <option value="Klara">Klara</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-size:11px; color:#6b7280; display:block; margin-bottom:4px;">Task</label>
+        <input id="bmEditTask" type="text" style="width:100%; padding:8px; border-radius:10px; border:1px solid #d5dde8;" />
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+        <div>
+          <label style="font-size:11px; color:#6b7280; display:block; margin-bottom:4px;">From</label>
+          <input id="bmEditStart" type="datetime-local" step="1800" style="width:100%; padding:8px; border-radius:10px; border:1px solid #d5dde8;" />
+        </div>
+        <div>
+          <label style="font-size:11px; color:#6b7280; display:block; margin-bottom:4px;">To</label>
+          <input id="bmEditEnd" type="datetime-local" step="1800" style="width:100%; padding:8px; border-radius:10px; border:1px solid #d5dde8;" />
+        </div>
+      </div>
+
+      <div class="modal-error" id="bmErr"></div>
+    </div>
+
+    <div class="modal-actions" id="bmActions">
+      <button class="btn-secondary" id="bmEditBtn">Edit</button>
+      <button class="btn-primary" id="bmSaveBtn" style="display:none;">Save</button>
+      <button class="btn-secondary" id="bmCancelEditBtn" style="display:none;">Cancel</button>
+      <button class="btn-secondary" id="bmDeleteBtn" style="background:#fee2e2; border:1px solid #fecaca; color:#b91c1c;">Delete</button>
+    </div>
+  </div>
+</div>
+
+  
 
  <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
@@ -619,6 +742,114 @@ const technicianFilter = document.getElementById("technicianFilter");
   const endInput = document.getElementById("end");
   const addBtn = document.getElementById("addBookingBtn");
 
+
+// -------------------------
+// Booking modal (view/edit)
+// -------------------------
+const bookingModal = document.getElementById("bookingModal");
+const bmClose = document.getElementById("bmClose");
+const bmTitle = document.getElementById("bmTitle");
+const bmMeta = document.getElementById("bmMeta");
+
+const bmView = document.getElementById("bmView");
+const bmEdit = document.getElementById("bmEdit");
+
+const bmTech = document.getElementById("bmTech");
+const bmTask = document.getElementById("bmTask");
+const bmFrom = document.getElementById("bmFrom");
+const bmTo = document.getElementById("bmTo");
+const bmBy = document.getElementById("bmBy");
+
+const bmEditTech = document.getElementById("bmEditTech");
+const bmEditTask = document.getElementById("bmEditTask");
+const bmEditStart = document.getElementById("bmEditStart");
+const bmEditEnd = document.getElementById("bmEditEnd");
+const bmErr = document.getElementById("bmErr");
+
+const bmEditBtn = document.getElementById("bmEditBtn");
+const bmSaveBtn = document.getElementById("bmSaveBtn");
+const bmCancelEditBtn = document.getElementById("bmCancelEditBtn");
+const bmDeleteBtn = document.getElementById("bmDeleteBtn");
+
+let modalBooking = null;     // aktualnie oglądany booking (obiekt z bookings[])
+let modalEditMode = false;   // czy modal jest w trybie edycji
+
+function openBookingModal(booking) {
+  modalBooking = booking;
+  modalEditMode = false;
+  bmErr.textContent = "";
+
+  const s = booking.start.toDate();
+  const e = booking.end.toDate();
+  const createdLabel = booking.createdByDisplayName || booking.createdByEmail || booking.createdBy || "unknown";
+
+  bmTitle.textContent = `Assignment – ${booking.technician}`;
+  bmMeta.textContent = canEditOrDelete(booking) ? "You can edit/delete this assignment." : "Read-only.";
+
+  // fill view
+  bmTech.textContent = booking.technician || "";
+  bmTask.textContent = booking.task || "";
+  bmFrom.textContent = formatDateTime(s);
+  bmTo.textContent = formatDateTime(e);
+  bmBy.textContent = createdLabel;
+
+  // prepare edit fields
+  bmEditTech.value = booking.technician || TECHNICIANS[0];
+  bmEditTask.value = booking.task || "";
+  bmEditStart.value = toLocalInputValue(s);
+  bmEditEnd.value = toLocalInputValue(e);
+
+  // permissions: show/hide actions
+  const canAct = canEditOrDelete(booking);
+  bmEditBtn.style.display = canAct ? "inline-flex" : "none";
+  bmDeleteBtn.style.display = canAct ? "inline-flex" : "none";
+
+  // always start in view mode
+  bmView.style.display = "grid";
+  bmEdit.style.display = "none";
+  bmSaveBtn.style.display = "none";
+  bmCancelEditBtn.style.display = "none";
+  bmEditBtn.style.display = canAct ? "inline-flex" : "none";
+
+  bookingModal.style.display = "flex";
+  appRoot.style.filter = "blur(3px)";
+  appRoot.style.pointerEvents = "none";
+}
+
+function closeBookingModal() {
+  bookingModal.style.display = "none";
+  appRoot.style.filter = "";
+  appRoot.style.pointerEvents = "";
+  modalBooking = null;
+  modalEditMode = false;
+  bmErr.textContent = "";
+}
+
+bmClose.addEventListener("click", closeBookingModal);
+bookingModal.addEventListener("click", (e) => {
+  if (e.target === bookingModal) closeBookingModal(); // klik w tło
+});
+
+function setModalEditMode(on) {
+  modalEditMode = on;
+  bmErr.textContent = "";
+  if (on) {
+    bmView.style.display = "none";
+    bmEdit.style.display = "grid";
+    bmSaveBtn.style.display = "inline-flex";
+    bmCancelEditBtn.style.display = "inline-flex";
+    bmEditBtn.style.display = "none";
+  } else {
+    bmView.style.display = "grid";
+    bmEdit.style.display = "none";
+    bmSaveBtn.style.display = "none";
+    bmCancelEditBtn.style.display = "none";
+    bmEditBtn.style.display = "inline-flex";
+  }
+}
+
+   
+
   // Add a logout button in header (minimal)
   (function addLogoutBtnOnce() {
     if (document.getElementById("btnLogout")) return;
@@ -790,6 +1021,139 @@ const technicianFilter = document.getElementById("technicianFilter");
     errorEl.textContent = `Editing assignment.`;
   }
 
+
+   bmEditBtn.addEventListener("click", () => {
+  if (!modalBooking) return;
+  if (!canEditOrDelete(modalBooking)) return;
+  setModalEditMode(true);
+});
+
+bmCancelEditBtn.addEventListener("click", () => {
+  if (!modalBooking) return;
+  // wróć do wartości z booking
+  const s = modalBooking.start.toDate();
+  const e = modalBooking.end.toDate();
+  bmEditTech.value = modalBooking.technician || TECHNICIANS[0];
+  bmEditTask.value = modalBooking.task || "";
+  bmEditStart.value = toLocalInputValue(s);
+  bmEditEnd.value = toLocalInputValue(e);
+  setModalEditMode(false);
+});
+
+bmDeleteBtn.addEventListener("click", async () => {
+  if (!modalBooking) return;
+  if (!canEditOrDelete(modalBooking)) return;
+
+  const s = modalBooking.start.toDate();
+  const e = modalBooking.end.toDate();
+
+  const ok = confirm(
+    `${modalBooking.technician} – ${modalBooking.task || "assignment"}\n` +
+    `${formatDateTime(s)} → ${formatDateTime(e)}\n\nDelete this assignment?`
+  );
+  if (!ok) return;
+
+  try {
+    await deleteDoc(doc(bookingsCol, modalBooking.id));
+    closeBookingModal();
+  } catch (err) {
+    console.error(err);
+    bmErr.textContent = "Delete failed (permissions or network).";
+  }
+});
+
+bmSaveBtn.addEventListener("click", async () => {
+  if (!modalBooking) return;
+  if (!canEditOrDelete(modalBooking)) return;
+
+  bmErr.textContent = "";
+
+  // normalize to 30 min
+  normalizeInputTo30(bmEditStart);
+  normalizeInputTo30(bmEditEnd);
+
+  const technician = bmEditTech.value;
+  const task = (bmEditTask.value || "").trim();
+  const start = toJSDate(bmEditStart.value);
+  const end = toJSDate(bmEditEnd.value);
+
+  if (!technician || !start || !end) {
+    bmErr.textContent = "Please fill technician and both dates.";
+    return;
+  }
+  if (end <= start) {
+    bmErr.textContent = "End must be later than start.";
+    return;
+  }
+
+  // role-based: kto może tworzyć/edytować dla kogo
+  if (!canCreateForTechnician(technician)) {
+    bmErr.textContent = "You cannot assign other technicians.";
+    return;
+  }
+
+  // Overbooking check (exclude self = modalBooking.id)
+  const conflicts = bookings.filter((b) => {
+    if (b.technician !== technician) return false;
+    if (b.id === modalBooking.id) return false;
+    const s = b.start.toDate();
+    const e = b.end.toDate();
+    return overlaps(start, end, s, e);
+  });
+
+  if (conflicts.length > 0) {
+    const c = conflicts[0];
+    const s = c.start.toDate();
+    const e = c.end.toDate();
+    bmErr.textContent =
+      `Overbooking: ${technician} already booked on ${s.toLocaleDateString()} ` +
+      `(${s.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}–` +
+      `${e.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}).`;
+    return;
+  }
+
+  // 3h/day limit (technician self-bookings)
+  if (isTechnician() && currentProfile?.technicianName) {
+    const bookingDay = start;
+    const dayBookings = bookings.filter((b) => {
+      if (b.technician !== currentProfile.technicianName) return false;
+      if (b.id === modalBooking.id) return false;
+      const s = b.start.toDate();
+      return sameDay(s, bookingDay) && b.createdByEmail === currentEmail;
+    });
+
+    let usedHours = 0;
+    dayBookings.forEach((b) => {
+      const s = b.start.toDate();
+      const e = b.end.toDate();
+      usedHours += (e - s) / (1000 * 60 * 60);
+    });
+
+    const newHours = (end - start) / (1000 * 60 * 60);
+    if (usedHours + newHours > 3.01) {
+      bmErr.textContent = "Technicians can book themselves for up to 3 hours per day.";
+      return;
+    }
+  }
+
+  try {
+    const ref = doc(bookingsCol, modalBooking.id);
+    await updateDoc(ref, {
+      technician,
+      task,
+      start: Timestamp.fromDate(start),
+      end: Timestamp.fromDate(end)
+    });
+
+    // po zapisie zamknij (snapshot odświeży widok)
+    closeBookingModal();
+  } catch (err) {
+    console.error(err);
+    bmErr.textContent = "Save failed (permissions or network).";
+  }
+});
+
+
   function renderCalendar() {
     calendarGridEl.innerHTML = "";
 
@@ -876,24 +1240,11 @@ const technicianFilter = document.getElementById("technicianFilter");
           `${formatDateTime(s)}  →  ${formatDateTime(e)}\n` +
           `Created by: ${createdLabel}`;
 
-        pill.addEventListener("click", async (ev) => {
-          ev.stopPropagation();
+     pill.addEventListener("click", (ev) => {
+  ev.stopPropagation();
+  openBookingModal(b);
+});
 
-          // legacy => no action for non-admin
-          if (!canEditOrDelete(b)) {
-            alert("Read-only (you cannot edit/delete this assignment).");
-            return;
-          }
-
-          const ok = confirm(
-            `${b.technician} – ${b.task || "assignment"}\n` +
-              `${formatDateTime(s)} → ${formatDateTime(e)}\n\n` +
-              `Delete this assignment?`
-          );
-          if (ok) {
-            await deleteDoc(doc(bookingsCol, b.id));
-          }
-        });
 
         currentRow.appendChild(pill);
       });
@@ -1248,6 +1599,7 @@ unsubscribeBookings = onSnapshot(qBookings, (snapshot) => {
   
 </body>
 </html>
+
 
 
 
