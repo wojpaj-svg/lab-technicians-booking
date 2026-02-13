@@ -1586,27 +1586,34 @@ if (isMyOnly) {
     resetFormToNew();
 
   
-// Subscribe (ALL bookings for everyone; filtering happens in UI)
-const qBookings = query(bookingsCol, orderBy("start"));
-
-unsubscribeBookings = onSnapshot(qBookings, (snapshot) => {
-  bookings = snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ...docSnap.data()
-  }));
-
-  renderCalendar();
-  renderBookingsList();
-
-  if (editingBookingId && !bookings.find((b) => b.id === editingBookingId)) {
     resetFormToNew();
-  }
-});
 
+    // Subscribe (ALL bookings for everyone; filtering happens in UI)
+    const qBookings = query(bookingsCol, orderBy("start"));
 
-  
+    unsubscribeBookings = onSnapshot(
+      qBookings,
+      (snapshot) => {
+        bookings = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data()
+        }));
 
-  // initial UI
+        renderCalendar();
+        renderBookingsList();
+
+        if (editingBookingId && !bookings.find((b) => b.id === editingBookingId)) {
+          resetFormToNew();
+        }
+      },
+      (err) => {
+        console.error("onSnapshot error:", err);
+        bookingsListEl.textContent = "Error loading data (see console).";
+      }
+    );
+  }); // ✅ TO DOMYKA onAuthStateChanged
+
+  // initial UI (before login)
   setDefaultDateTimeInputs();
   renderCalendar();
   renderBookingsList();
@@ -1614,9 +1621,11 @@ unsubscribeBookings = onSnapshot(qBookings, (snapshot) => {
 
 
 
+
   
 </body>
 </html>
+
 
 
 
