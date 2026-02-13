@@ -266,13 +266,32 @@
       border: 1px solid rgba(15,23,42,0.08);
     }
 /* Bigger pills when showing only my assignments */
+/* --- MY view (technician) pills: equal + neat --- */
 .pill.my-only {
-  padding: 4px 8px;
+  padding: 6px 10px;
   font-size: 11px;
-  white-space: normal;     /* allow 2 lines */
-  line-height: 1.15;
-  max-height: 2.6em;       /* ~2 lines */
+  line-height: 1.2;
+
+  /* make all pills look consistent */
+  width: 100%;
+  border-radius: 12px;
+
+  /* force consistent 2-line layout */
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  /* base height (will be overridden by duration classes below) */
+  min-height: 36px;
 }
+
+/* Optional: height depends on duration */
+.pill.dur-1 { min-height: 36px; }  /* ~ up to 1.5h */
+.pill.dur-3 { min-height: 46px; }  /* ~ up to 3.5h */
+.pill.dur-6 { min-height: 58px; }  /* longer */
+
 
     
     .pill.sasi { background: var(--sasi); }
@@ -1276,15 +1295,25 @@ if (!bookingPassesFilter(b)) return false;
               day: "2-digit"
             })}`;
 
- const isMyOnly = (currentFilterTechnician === "MY");
+const isMyOnly = (currentFilterTechnician === "MY");
 
 if (isMyOnly) {
-  pill.textContent = `${b.task || "assignment"} (${timeLabel})`;
+  pill.textContent = `${b.task || "assignment"} – ${timeLabel}`;
+
   pill.classList.add("my-only");
+
+  // duration-based height (optional)
+  const durH = (e - s) / (1000 * 60 * 60); // hours
+  pill.classList.remove("dur-1", "dur-3", "dur-6");
+  if (durH <= 1.5) pill.classList.add("dur-1");
+  else if (durH <= 3.5) pill.classList.add("dur-3");
+  else pill.classList.add("dur-6");
+
 } else {
   pill.textContent = `${b.technician}: ${b.task || "assignment"} (${timeLabel})`;
-  pill.classList.remove("my-only");
+  pill.classList.remove("my-only", "dur-1", "dur-3", "dur-6");
 }
+
 
 
 
@@ -1649,6 +1678,7 @@ technicianFilter.value = "ALL";
   
 </body>
 </html>
+
 
 
 
