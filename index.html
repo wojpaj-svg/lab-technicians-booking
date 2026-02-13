@@ -1805,56 +1805,52 @@ if (isAbsence) {
       return;
     }
 
-    monthBookings.forEach((b) => {
-      const wrapper = document.createElement("div");
-      wrapper.style.padding = "8px 10px";
-      wrapper.style.marginTop = "6px";
-      wrapper.style.borderRadius = "10px";
-      wrapper.style.background = "#eef3ff";
+   monthBookings.forEach((b) => {
+  const wrapper = document.createElement("div");
+  wrapper.style.padding = "8px 10px";
+  wrapper.style.marginTop = "6px";
+  wrapper.style.borderRadius = "10px";
+  wrapper.style.background = "#eef3ff";
 
-      if (overridden) {
-  wrapper.style.border = "2px solid #ef4444";
-  wrapper.style.background = "#fff5f5";
-}
+  const s = b.start.toDate();
+  const e = b.end.toDate();
 
+  const overridden = isOverriddenByAbsence(b);
 
-      const s = b.start.toDate();
-      const e = b.end.toDate();
+  if (overridden) {
+    wrapper.style.border = "2px solid #ef4444";
+    wrapper.style.background = "#fff5f5";
 
-      const overridden = isOverriddenByAbsence(b);
+    const badge = document.createElement("div");
+    badge.textContent = "OVERWRITTEN BY ABSENCE";
+    badge.style.display = "inline-block";
+    badge.style.fontSize = "10px";
+    badge.style.fontWeight = "700";
+    badge.style.padding = "2px 8px";
+    badge.style.borderRadius = "999px";
+    badge.style.border = "1px solid #ef4444";
+    badge.style.color = "#b91c1c";
+    badge.style.background = "#fff";
+    badge.style.marginBottom = "6px";
+    wrapper.appendChild(badge);
+  }
 
-      if (overridden) {
-  const badge = document.createElement("div");
-  badge.textContent = "OVERWRITTEN BY ABSENCE";
-  badge.style.display = "inline-block";
-  badge.style.fontSize = "10px";
-  badge.style.fontWeight = "700";
-  badge.style.padding = "2px 8px";
-  badge.style.borderRadius = "999px";
-  badge.style.border = "1px solid #ef4444";
-  badge.style.color = "#b91c1c";
-  badge.style.background = "#fff";
-  badge.style.marginBottom = "6px";
-  wrapper.appendChild(badge);
-}
+  const line1 = document.createElement("div");
+  line1.style.fontSize = "12px";
+  line1.innerHTML = `<strong>${b.technician}</strong> – ${b.task || "assignment"}`;
 
+  const line2 = document.createElement("div");
+  line2.style.fontSize = "11px";
+  line2.textContent = `${formatDateTime(s)} → ${formatDateTime(e)}`;
 
-      const line1 = document.createElement("div");
-      line1.style.fontSize = "12px";
-      line1.innerHTML = `<strong>${b.technician}</strong> – ${b.task || "assignment"}`;
+  const createdLabel = b.createdByDisplayName || b.createdByEmail || b.createdBy || "unknown";
+  const line3 = document.createElement("div");
+  line3.style.fontSize = "11px";
+  line3.textContent = `Created by: ${createdLabel}`;
 
-      const line2 = document.createElement("div");
-      line2.style.fontSize = "11px";
-      line2.textContent = `${formatDateTime(s)} → ${formatDateTime(e)}`;
-
-      const createdLabel = b.createdByDisplayName || b.createdByEmail || b.createdBy || "unknown";
-      const line3 = document.createElement("div");
-      line3.style.fontSize = "11px";
-      line3.textContent = `Created by: ${createdLabel}`;
-
-      wrapper.appendChild(line1);
-      wrapper.appendChild(line2);
-      wrapper.appendChild(line3);
+  wrapper.appendChild(line1);
+  wrapper.appendChild(line2);
+  wrapper.appendChild(line3);
 
       const actions = document.createElement("div");
       actions.style.display = "flex";
@@ -2152,6 +2148,7 @@ technicianFilter.value = "ALL";
   
 </body>
 </html>
+
 
 
 
