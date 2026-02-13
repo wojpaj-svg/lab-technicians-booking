@@ -19,6 +19,7 @@
       --lara: #f97316;
       --stefanija: #eab308;
       --klara: #1e3a8a;
+      --absence-outline: #3b82f6;
 
     }
     * {
@@ -132,6 +133,45 @@
       margin-top: 6px;
       margin-bottom: 8px;
     }
+
+    /* --- Quick tags in New assignment --- */
+.tag-row{ grid-column: 1 / -1; }
+.tag-wrap{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-top:4px;
+}
+
+.tag-btn{
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tag-btn:hover{
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.18);
+}
+.tag-btn:active{ transform: translateY(1px); }
+
+.tag-btn.active{
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 2px rgba(29,78,216,0.18);
+}
+
+.tag-btn.tag-custom{
+  border-style: dashed;
+  color: #1d4ed8;
+}
+
+
+    
     .slot-row {
       display: flex;
       gap: 2px;
@@ -313,16 +353,16 @@
 
     /* --- ABSENCE pills: same color, but hatched/pattern --- */
 .pill.absence{
-  /* keep technician background-color from .pill.sasi/.viviana/... */
   background-image: repeating-linear-gradient(
     45deg,
-    rgba(255,255,255,0.28) 0px,
-    rgba(255,255,255,0.28) 6px,
-    rgba(255,255,255,0.00) 6px,
-    rgba(255,255,255,0.00) 12px
+    rgba(255,255,255,0.35) 0px,
+    rgba(255,255,255,0.35) 6px,
+    rgba(0,0,0,0.12) 6px,
+    rgba(0,0,0,0.12) 12px
   );
-  border: 1px dashed rgba(255,255,255,0.65);
+  border: 2px solid rgba(30,58,138,0.95); /* ciemny granat - zawsze widoczny */
 }
+
 /* Booking nadpisany przez absencję (admin view / wszyscy) */
 .pill.overridden {
   outline: 3px solid #ef4444;
@@ -474,13 +514,34 @@
             </select>
           </div>
           <div>
-            <label for="task">Task /  description</label>
-            <input id="task" type="text" placeholder="inventory, BET, lab tour..." />
-          </div>
-          <div>
-            <label for="start">Date &amp; time from</label>
-            <input id="start" type="datetime-local" step="1800" />
-          </div>
+  <label for="task">Task /  description</label>
+  <input id="task" type="text" placeholder="inventory, BET, lab tour..." />
+</div>
+
+<!-- NEW: quick tags row -->
+<div class="tag-row">
+  <label>Quick tags</label>
+  <div class="tag-wrap" id="tagWrap">
+    <button type="button" class="tag-btn" data-tag="[REMEDY]">Remedy</button>
+    <button type="button" class="tag-btn" data-tag="[ARCHISKIN]">ArchiSkin</button>
+    <button type="button" class="tag-btn" data-tag="[LIVEMAT]">LiveMat</button>
+    <button type="button" class="tag-btn" data-tag="[EMICOPLAST]">Emicoplast</button>
+    <button type="button" class="tag-btn" data-tag="[MICROINSERT]">Microinsert</button>
+    <button type="button" class="tag-btn" data-tag="[BIOLUMICOAT]">Biolumicoat</button>
+    <button type="button" class="tag-btn" data-tag="[ELM-LAB]">ELM Lab</button>
+    <button type="button" class="tag-btn" data-tag="[CH-LAB]">CH Lab</button>
+    <button type="button" class="tag-btn" data-tag="[TRAINING]">Training</button>
+    <button type="button" class="tag-btn" data-tag="[EVENT]">Event</button>
+
+    <button type="button" class="tag-btn tag-custom" id="customTagBtn">+ Tag</button>
+  </div>
+</div>
+
+<div>
+  <label for="start">Date &amp; time from</label>
+  <input id="start" type="datetime-local" step="1800" />
+</div>
+
           <div>
             <label for="end">Date &amp; time to</label>
             <input id="end" type="datetime-local" step="1800" />
@@ -921,6 +982,45 @@ const technicianFilter = document.getElementById("technicianFilter");
 
   const technicianSelect = document.getElementById("technician");
   const taskInput = document.getElementById("task");
+
+   // --- Quick tags logic ---
+const tagWrap = document.getElementById("tagWrap");
+const customTagBtn = document.getElementById("customTagBtn");
+
+function addTagToTask(tag) {
+  if (!tag) return;
+
+  const t = (taskInput.value || "").trim();
+  const prefix = `${tag} `;
+  // jeśli już jest na początku, nie duplikuj
+  if (t.startsWith(prefix) || t.includes(`${tag} `) || t.endsWith(tag)) return;
+
+  taskInput.value = t ? `${prefix}${t}` : `${prefix}`;
+  taskInput.focus();
+}
+
+if (tagWrap) {
+  tagWrap.addEventListener("click", (e) => {
+    const btn = e.target.closest("button.tag-btn");
+    if (!btn) return;
+    if (btn.id === "customTagBtn") return;
+
+    const tag = btn.dataset.tag;
+    addTagToTask(tag);
+  });
+}
+
+if (customTagBtn) {
+  customTagBtn.addEventListener("click", () => {
+    const raw = prompt("Enter tag (e.g., MEETING, NEWPROJECT):");
+    if (!raw) return;
+    const clean = raw.trim().replace(/\s+/g, "-").toUpperCase();
+    if (!clean) return;
+    addTagToTask(`[${clean}]`);
+  });
+}
+
+   
   const startInput = document.getElementById("start");
   const endInput = document.getElementById("end");
   const addBtn = document.getElementById("addBookingBtn");
@@ -2182,6 +2282,7 @@ technicianFilter.value = "ALL";
   
 </body>
 </html>
+
 
 
 
