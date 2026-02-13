@@ -330,6 +330,13 @@
   box-shadow: 0 0 0 2px rgba(239,68,68,0.25);
   filter: saturate(0.85);
 }
+    /* Absence (pozytywna ramka jak overridden, ale niebieska) */
+.pill.absence-outline {
+  outline: 3px solid var(--absence-outline);
+  outline-offset: -2px;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.22);
+}
+
 
 
     
@@ -506,9 +513,10 @@
         <div class="legend-info">
   Click a coloured bar in the calendar to view details. If it is your assignment – you can edit/delete it.
   <br><br>
-  <b>Absence has priority</b> (Vacation / Sick) and is shown as a <b>hatched</b> bar in the technician’s colour.
-  <br>
-  Any assignment that falls on an absence day is kept, but marked with a <b>red outline</b> (overridden by absence).
+  <b>Absence has priority</b> (Vacation / Sick) and is shown as a <b>hatched</b> bar in the technician’s colour with a <b>blue outline</b>.
+<br><br>
+Any assignment that falls on an absence day is kept, but marked with a <b>red outline</b> (overridden by absence).
+
 </div>
 
       </div>
@@ -1670,7 +1678,11 @@ if (!bookingPassesFilter(b)) return false;
         pill.className = "pill " + technicianClass(b.technician);
 
         const isAbsence = (b.kind === "absence");
-if (isAbsence) pill.classList.add("absence");
+if (isAbsence) {
+  pill.classList.add("absence");
+  pill.classList.add("absence-outline"); // <-- NOWE: niebieska ramka na kalendarzu
+}
+
 
         // If this is a NORMAL booking and there exists an overlapping ABSENCE for same technician,
 // mark it as overridden (absence is higher priority).
@@ -2170,6 +2182,7 @@ technicianFilter.value = "ALL";
   
 </body>
 </html>
+
 
 
 
