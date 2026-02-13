@@ -323,7 +323,16 @@
   );
   border: 1px dashed rgba(255,255,255,0.65);
 }
+/* Booking nadpisany przez absencję (admin view / wszyscy) */
+.pill.overridden {
+  outline: 3px solid #ef4444;
+  outline-offset: -2px;
+  box-shadow: 0 0 0 2px rgba(239,68,68,0.25);
+  filter: saturate(0.85);
+}
 
+
+    
 /* optional: make absence slightly more “label-like” */
 .pill.absence .t { font-weight: 700; }
 
@@ -638,7 +647,6 @@
           <select id="amType" style="width:100%; padding:8px; border-radius:10px; border:1px solid #d5dde8;">
             <option value="Vacation">Vacation</option>
             <option value="Sick">Sick</option>
-            <option value="Remote">Remote</option>
             <option value="Other">Other</option>
           </select>
         </div>
@@ -1288,27 +1296,7 @@ amSaveBtn.addEventListener("click", async () => {
   // Build dates sorted
   const keys = Array.from(selectedAbsenceDays).sort(); // YYYY-MM-DD sorts naturally
 
-  // Conflict check: do not allow absence on a day with any booking (including tasks/other absences)
-  // If you want admin to override later, we can change this rule.
-  for (const k of keys) {
-    const [yy, mm, dd] = k.split("-").map(Number);
-    const day = new Date(yy, mm-1, dd);
-    const sDay = startOfDayLocal(day);
-    const eDay = endOfDayLocal(day);
-
-    const conflict = bookings.find((b) => {
-      if (b.technician !== technician) return false;
-      const s = b.start.toDate();
-      const e = b.end.toDate();
-      return overlaps(sDay, eDay, s, e);
-    });
-
-    if (conflict) {
-      amErr.textContent = `Conflict: ${technician} already has a booking on ${k}. Remove/move it first.`;
-      return;
-    }
-  }
-
+ 
   try {
     const batch = writeBatch(db);
 
@@ -1662,6 +1650,20 @@ if (!bookingPassesFilter(b)) return false;
         const isAbsence = (b.kind === "absence");
 if (isAbsence) pill.classList.add("absence");
 
+        // If this is a NORMAL booking and there exists an overlapping ABSENCE for same technician,
+// mark it as overridden (absence is higher priority).
+if (!isAbsence) {
+  const overridden = bookings.some((a) => {
+    if (a.kind !== "absence") return false;
+    if (a.technician !== b.technician) return false;
+    const as = a.start.toDate();
+    const ae = a.end.toDate();
+    return overlaps(s, e, as, ae);
+  });
+  if (overridden) pill.classList.add("overridden");
+}
+
+
 
         const timeLabel = sameDay(s, e)
           ? `${s.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}-${e.toLocaleTimeString([], {
@@ -1681,17 +1683,29 @@ const isCreatorMyView = isMyFilter && !isTechnician();           // researcher/a
 if (isAbsence) {
   const type = b.absenceType || "Absence";
 
+  // Technician MY view: ładna 2-linijkowa
   if (isTechMyView) {
     pill.classList.add("my-only");
     pill.innerHTML = `
       <div class="t">Absence – ${type}</div>
       <div class="tm">All day</div>
     `;
+
+  // Admin/Researcher MY (created by me): też zrób większą, bo tego chcesz
+  } else if (isCreatorMyView) {
+    pill.classList.add("my-only");
+    pill.innerHTML = `
+      <div class="t">${b.technician}: Absence – ${type}</div>
+      <div class="tm">All day</div>
+    `;
+
+  // ALL / filtr po techniku: zwykły tekst (albo też możesz dać my-only jeśli wolisz)
   } else {
     pill.textContent = `${b.technician}: Absence – ${type}`;
   }
+}
 
-} else {
+ else {
   // NORMAL ASSIGNMENTS (only when NOT absence)
   if (isTechMyView) {
     pill.classList.add("my-only");
@@ -2091,6 +2105,7 @@ technicianFilter.value = "ALL";
   
 </body>
 </html>
+
 
 
 
