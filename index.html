@@ -267,30 +267,40 @@
     }
 /* Bigger pills when showing only my assignments */
 /* --- MY view (technician) pills: equal + neat --- */
-.pill.my-only {
-  padding: 6px 10px;
-  font-size: 11px;
-  line-height: 1.2;
-
-  /* make all pills look consistent */
-  width: 100%;
+/* --- MY view (technician) pills: equal + neat, always 2 lines --- */
+.pill.my-only{
+  padding: 8px 10px;
   border-radius: 12px;
+  width: 100%;
 
-  /* force consistent 2-line layout */
-  white-space: normal;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+
+  height: 54px;          /* <-- STAŁA WYSOKOŚĆ dla wszystkich */
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-
-  /* base height (will be overridden by duration classes below) */
-  min-height: 36px;
+  white-space: normal;
+  line-height: 1.2;
 }
 
-/* Optional: height depends on duration */
-.pill.dur-1 { min-height: 36px; }  /* ~ up to 1.5h */
-.pill.dur-3 { min-height: 46px; }  /* ~ up to 3.5h */
-.pill.dur-6 { min-height: 58px; }  /* longer */
+/* line 1: task (clamp to 1 line or 2 - tu ustawiam 1 linię, bo masz osobną linię czasu) */
+.pill.my-only .t{
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* line 2: time */
+.pill.my-only .tm{
+  font-size: 10px;
+  opacity: 0.95;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 
 
     
@@ -1301,8 +1311,12 @@ const isCreatorMyView = isMyFilter && !isTechnician();           // researcher/a
 
 if (isTechMyView) {
   // Technician: show only their own assignments → no need to repeat technician name
-  pill.textContent = `${b.task || "assignment"} – ${timeLabel}`;
-  pill.classList.add("my-only");
+ pill.classList.add("my-only");
+pill.innerHTML = `
+  <div class="t">${(b.task || "assignment")}</div>
+  <div class="tm">${timeLabel}</div>
+`;
+
 
   // duration-based height (optional)
   const durH = (e - s) / (1000 * 60 * 60);
@@ -1687,6 +1701,7 @@ technicianFilter.value = "ALL";
   
 </body>
 </html>
+
 
 
 
