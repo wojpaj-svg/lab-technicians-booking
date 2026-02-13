@@ -883,6 +883,24 @@ function setModalEditMode(on) {
   // -------------------------
   const TECHNICIANS = ["Sasi", "Viviana", "Simon", "Lara", "Stefanija", "Klara"];
 
+   function buildFilterOptionsForRole() {
+  if (isTechnician()) {
+    // Technician: ONLY ALL + MY
+    technicianFilter.innerHTML = `
+      <option value="ALL">All technicians</option>
+      <option value="MY">Show only my assignments</option>
+    `;
+  } else {
+    // Admin/Researcher: ALL + MY(created by me) + specific technicians
+    technicianFilter.innerHTML = `
+      <option value="ALL">All technicians</option>
+      <option value="MY">Show only assignments I created</option>
+      ${TECHNICIANS.map((t) => `<option value="${t}">${t}</option>`).join("")}
+    `;
+  }
+}
+
+
   function toJSDate(value) {
     if (!value) return null;
     return new Date(value);
@@ -968,11 +986,19 @@ function bookingPassesFilter(b) {
   if (currentFilterTechnician === "ALL") return true;
 
   if (currentFilterTechnician === "MY") {
-    return b.technician === currentProfile?.technicianName;
+    // TECHNICIAN: MY = bookings assigned to me
+    if (isTechnician()) {
+      return b.technician === currentProfile?.technicianName;
+    }
+    // ADMIN/RESEARCHER: MY = bookings created by me
+    return b.createdByEmail === currentEmail;
   }
 
+  // Named technician filter should be used only by admin/researcher (UI will prevent technicians)
   return b.technician === currentFilterTechnician;
 }
+
+
 
    
   let editingBookingId = null;
@@ -1564,22 +1590,20 @@ if (isMyOnly) {
     userLabelEl.textContent = currentProfile.displayName || (user.email || "User");
 
     // Lock technician select if technician role
- if (isTechnician()) {
+// Lock technician select if technician role
+if (isTechnician()) {
   technicianSelect.value = currentProfile?.technicianName || TECHNICIANS[0];
   technicianSelect.disabled = true;
-
-  // Technician also gets the filter
-  filterContainer.style.display = "block";
-  currentFilterTechnician = "ALL";
-  technicianFilter.value = "ALL";
-
 } else {
   technicianSelect.disabled = false;
-
-  filterContainer.style.display = "block";
-  currentFilterTechnician = "ALL";
-  technicianFilter.value = "ALL";
 }
+
+// FILTER (role-specific options)
+filterContainer.style.display = "block";
+buildFilterOptionsForRole();
+currentFilterTechnician = "ALL";
+technicianFilter.value = "ALL";
+
 
 
 
@@ -1625,6 +1649,7 @@ if (isMyOnly) {
   
 </body>
 </html>
+
 
 
 
