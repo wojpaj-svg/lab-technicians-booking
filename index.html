@@ -20,6 +20,12 @@
       --stefanija: #eab308;
       --klara: #1e3a8a;
       --absence-outline: #3b82f6;
+      --tag-bg: #eef2f7;
+--tag-border: #cbd5e1;
+--tag-text: #334155;
+--tag-bg-hover: #e6edf6;
+--tag-border-hover: #94a3b8;
+
 
     }
     * {
@@ -144,31 +150,53 @@
   margin-top:4px;
 }
 
+/* --- Project tags in New assignment --- */
+.tag-row{ grid-column: 1 / -1; }
+
+.tag-wrap{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-top:4px;
+}
+
+/* breaker -> next line */
+.tag-break{ flex-basis: 100%; height: 0; }
+
 .tag-btn{
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #0f172a;
+  border: 1px solid var(--tag-border, #cbd5e1);
+  background: var(--tag-bg, #eef2f7);
+  color: var(--tag-text, #334155);
   border-radius: 999px;
   padding: 5px 10px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 400;            /* <- jak legenda (bez bold) */
   cursor: pointer;
+  box-shadow: none;
 }
+
 .tag-btn:hover{
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 2px rgba(59,130,246,0.18);
+  background: var(--tag-bg-hover, #e6edf6);
+  border-color: var(--tag-border-hover, #94a3b8);
 }
+
 .tag-btn:active{ transform: translateY(1px); }
 
+/* “selected” feedback (masz klasę .active, ale JS jej nie używa — zostawiam na przyszłość) */
 .tag-btn.active{
-  border-color: #1d4ed8;
-  box-shadow: 0 0 0 2px rgba(29,78,216,0.18);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(14,165,233,0.18);
 }
 
+/* + Tag button: bardziej “linkowy”, nie mdły */
 .tag-btn.tag-custom{
+  background: #ffffff;
   border-style: dashed;
-  color: #1d4ed8;
+  color: var(--accent);
+  font-weight: 600;            /* tu może zostać mocniejsze */
 }
+
 
 
     
@@ -527,8 +555,15 @@
     <button type="button" class="tag-btn" data-tag="[LIVEMAT]">LiveMat</button>
     <button type="button" class="tag-btn" data-tag="[EMICOPLAST]">Emicoplast</button>
     <button type="button" class="tag-btn" data-tag="[MICROINSERT]">Microinsert</button>
-    <button type="button" class="tag-btn" data-tag="[BIOLUMICOAT]">Biolumicoat</button>
-    <button type="button" class="tag-btn" data-tag="[ELM-LAB]">ELM Lab</button>
+    
+   <button type="button" class="tag-btn" data-tag="[BIOLUMICOAT]">Biolumicoat</button>
+<button type="button" class="tag-btn" data-tag="[BIOARC]">BIOARC</button>
+
+<span class="tag-break" aria-hidden="true"></span>
+
+<button type="button" class="tag-btn" data-tag="[ELM-LAB]">ELM Lab</button>
+
+    
     <button type="button" class="tag-btn" data-tag="[CH-LAB]">CH Lab</button>
     <button type="button" class="tag-btn" data-tag="[TRAINING]">Training</button>
     <button type="button" class="tag-btn" data-tag="[EVENT]">Event</button>
@@ -1007,6 +1042,9 @@ if (tagWrap) {
 
     const tag = btn.dataset.tag;
     addTagToTask(tag);
+    btn.classList.add("active");
+setTimeout(() => btn.classList.remove("active"), 250);
+
   });
 }
 
@@ -2282,6 +2320,7 @@ technicianFilter.value = "ALL";
   
 </body>
 </html>
+
 
 
 
