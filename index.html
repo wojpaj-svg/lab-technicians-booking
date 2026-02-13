@@ -311,6 +311,23 @@
     .pill.stefanija { background: var(--stefanija); }
     .pill.klara { background: var(--klara); }
 
+    /* --- ABSENCE pills: same color, but hatched/pattern --- */
+.pill.absence{
+  /* keep technician background-color from .pill.sasi/.viviana/... */
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255,255,255,0.28) 0px,
+    rgba(255,255,255,0.28) 6px,
+    rgba(255,255,255,0.00) 6px,
+    rgba(255,255,255,0.00) 12px
+  );
+  border: 1px dashed rgba(255,255,255,0.65);
+}
+
+/* optional: make absence slightly more “label-like” */
+.pill.absence .t { font-weight: 700; }
+
+
 
     .info-text {
       font-size: 11px;
@@ -380,6 +397,29 @@
   margin-top: 8px;
 }
 
+/* --- absence mini calendar day cells --- */
+.am-day{
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 10px;
+  min-height: 34px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.am-day.off { opacity: 0.35; background:#f3f4f6; cursor: default; }
+.am-day.sel{
+  outline: 2px solid rgba(14, 165, 233, 0.45);
+  border-color: var(--accent);
+  background: #eef7ff;
+  font-weight: 700;
+}
+.am-day.today{
+  border-color: rgba(14,165,233,0.6);
+}
   
   
   </style>
@@ -431,9 +471,14 @@
           </div>
         </div>
         <div class="form-actions">
-          <button class="btn-primary" id="addBookingBtn">Add assignment</button>
-          <div class="error" id="error"></div>
-        </div>
+  <button class="btn-primary" id="addBookingBtn">Add assignment</button>
+
+  <!-- NEW: Absence (visible for admin + technician via JS) -->
+  <button class="btn-secondary" id="addAbsenceBtn" style="display:none;">Add absence</button>
+
+  <div class="error" id="error"></div>
+</div>
+
         <div class="info-text">
           Time step = 30 min (automatically rounded). Overlaps for the same technician are blocked.
         </div>
@@ -509,6 +554,8 @@
       <button class="modal-close" id="bmClose">Close</button>
     </div>
 
+
+    
     <div class="modal-hint" id="bmMeta"></div>
 
     <!-- VIEW MODE -->
@@ -562,6 +609,79 @@
   </div>
 </div>
 
+<!-- Absence modal -->
+<div id="absenceModal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-title">
+      <strong id="amTitle">Absence</strong>
+      <button class="modal-close" id="amClose">Close</button>
+    </div>
+
+    <div class="modal-hint" id="amMeta">Select days (no hours). Click to toggle.</div>
+
+    <div class="modal-row">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:end;">
+        <div>
+          <label style="font-size:11px; color:#6b7280; display:block; margin-bottom:4px;">Technician</label>
+          <select id="amTech" style="width:100%; padding:8px; border-radius:10px; border:1px solid #d5dde8;">
+            <option value="Sasi">Sasi</option>
+            <option value="Viviana">Viviana</option>
+            <option value="Simon">Simon</option>
+            <option value="Lara">Lara</option>
+            <option value="Stefanija">Stefanija</option>
+            <option value="Klara">Klara</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:11px; color:#6b7280; display:block; margin-bottom:4px;">Type</label>
+          <select id="amType" style="width:100%; padding:8px; border-radius:10px; border:1px solid #d5dde8;">
+            <option value="Vacation">Vacation</option>
+            <option value="Sick">Sick</option>
+            <option value="Remote">Remote</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size:11px; color:#6b7280; display:block; margin-bottom:4px;">Note (optional)</label>
+        <input id="amNote" type="text" style="width:100%; padding:8px; border-radius:10px; border:1px solid #d5dde8;"
+               placeholder="e.g., annual leave, conference travel..." />
+      </div>
+
+      <!-- mini calendar header -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+        <div style="font-weight:600; font-size:13px;" id="amMonthTitle">Month</div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-secondary" id="amPrev" style="font-size:11px; padding:5px 10px;">&lt;</button>
+          <button class="btn-secondary" id="amToday" style="font-size:11px; padding:5px 10px;">Today</button>
+          <button class="btn-secondary" id="amNext" style="font-size:11px; padding:5px 10px;">&gt;</button>
+        </div>
+      </div>
+
+      <!-- mini calendar grid -->
+      <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap:4px; margin-top:6px;">
+        <div style="text-align:center; font-size:11px; color:#6b7280;">Mon</div>
+        <div style="text-align:center; font-size:11px; color:#6b7280;">Tue</div>
+        <div style="text-align:center; font-size:11px; color:#6b7280;">Wed</div>
+        <div style="text-align:center; font-size:11px; color:#6b7280;">Thu</div>
+        <div style="text-align:center; font-size:11px; color:#6b7280;">Fri</div>
+        <div style="text-align:center; font-size:11px; color:#6b7280;">Sat</div>
+        <div style="text-align:center; font-size:11px; color:#6b7280;">Sun</div>
+      </div>
+      <div id="amGrid" style="display:grid; grid-template-columns: repeat(7, 1fr); gap:4px; margin-top:4px;"></div>
+
+      <div class="modal-error" id="amErr"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" id="amClearBtn">Clear</button>
+      <button class="btn-primary" id="amSaveBtn">Save absence</button>
+    </div>
+  </div>
+</div>
+
   
 
  <script type="module">
@@ -589,7 +709,8 @@
   doc,
   deleteDoc,
   updateDoc,
-  getDoc
+  getDoc,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 
@@ -782,6 +903,25 @@ const technicianFilter = document.getElementById("technicianFilter");
   const startInput = document.getElementById("start");
   const endInput = document.getElementById("end");
   const addBtn = document.getElementById("addBookingBtn");
+   const addAbsenceBtn = document.getElementById("addAbsenceBtn");
+
+// Absence modal refs
+const absenceModal = document.getElementById("absenceModal");
+const amClose = document.getElementById("amClose");
+const amTitle = document.getElementById("amTitle");
+const amMeta = document.getElementById("amMeta");
+const amTech = document.getElementById("amTech");
+const amType = document.getElementById("amType");
+const amNote = document.getElementById("amNote");
+const amMonthTitle = document.getElementById("amMonthTitle");
+const amPrev = document.getElementById("amPrev");
+const amToday = document.getElementById("amToday");
+const amNext = document.getElementById("amNext");
+const amGrid = document.getElementById("amGrid");
+const amErr = document.getElementById("amErr");
+const amSaveBtn = document.getElementById("amSaveBtn");
+const amClearBtn = document.getElementById("amClearBtn");
+
 
 
 // -------------------------
@@ -815,6 +955,8 @@ const bmDeleteBtn = document.getElementById("bmDeleteBtn");
 let modalBooking = null;     // aktualnie oglądany booking (obiekt z bookings[])
 let modalEditMode = false;   // czy modal jest w trybie edycji
 
+   const TECHNICIANS = ["Sasi", "Viviana", "Simon", "Lara", "Stefanija", "Klara"];
+   
 function openBookingModal(booking) {
   modalBooking = booking;
   modalEditMode = false;
@@ -824,7 +966,10 @@ function openBookingModal(booking) {
   const e = booking.end.toDate();
   const createdLabel = booking.createdByDisplayName || booking.createdByEmail || booking.createdBy || "unknown";
 
-  bmTitle.textContent = `Assignment – ${booking.technician}`;
+  bmTitle.textContent = (booking.kind === "absence")
+  ? `Absence – ${booking.technician}`
+  : `Assignment – ${booking.technician}`;
+
   bmMeta.textContent = canEditOrDelete(booking) ? "You can edit/delete this assignment." : "Read-only.";
 
   // fill view
@@ -910,7 +1055,7 @@ function setModalEditMode(on) {
   // -------------------------
   // Calendar logic (mostly your original)
   // -------------------------
-  const TECHNICIANS = ["Sasi", "Viviana", "Simon", "Lara", "Stefanija", "Klara"];
+  
 
    function buildFilterOptionsForRole() {
   if (isTechnician()) {
@@ -982,6 +1127,225 @@ function setModalEditMode(on) {
     });
   }
 
+// -------------------------
+// Absence picker state + helpers
+// -------------------------
+let amMonth = null;
+let amYear = null;
+let selectedAbsenceDays = new Set(); // stores "YYYY-MM-DD"
+
+function ymdKey(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+function startOfDayLocal(d){
+  const x = new Date(d);
+  x.setHours(0,0,0,0);
+  return x;
+}
+
+function endOfDayLocal(d){
+  const x = new Date(d);
+  x.setHours(23,59,59,999);
+  return x;
+}
+
+function openAbsenceModal(){
+  amErr.textContent = "";
+  selectedAbsenceDays.clear();
+
+  // who can use?
+  const canUse = isAdmin() || isTechnician();
+  if (!canUse) {
+    errorEl.textContent = "Absence is available only for admin/technicians.";
+    return;
+  }
+
+  // technician selection rules:
+  if (isTechnician()) {
+    amTech.value = currentProfile?.technicianName || TECHNICIANS[0];
+    amTech.disabled = true;
+  } else {
+    // admin can select technician (default = current form dropdown)
+    amTech.value = technicianSelect.value || TECHNICIANS[0];
+    amTech.disabled = false;
+  }
+
+  const now = new Date();
+  amMonth = now.getMonth();
+  amYear = now.getFullYear();
+  renderAbsenceCalendar();
+
+  absenceModal.style.display = "flex";
+  appRoot.style.filter = "blur(3px)";
+  appRoot.style.pointerEvents = "none";
+}
+
+addAbsenceBtn.addEventListener("click", () => {
+  openAbsenceModal();
+});
+
+   
+function closeAbsenceModal(){
+  absenceModal.style.display = "none";
+  appRoot.style.filter = "";
+  appRoot.style.pointerEvents = "";
+  amErr.textContent = "";
+  selectedAbsenceDays.clear();
+}
+
+amClose.addEventListener("click", closeAbsenceModal);
+absenceModal.addEventListener("click", (e) => {
+  if (e.target === absenceModal) closeAbsenceModal();
+});
+
+function renderAbsenceCalendar(){
+  amGrid.innerHTML = "";
+
+  const firstDay = new Date(amYear, amMonth, 1);
+  const firstWeekday = (firstDay.getDay() + 6) % 7; // Mon=0
+  const totalCells = 42;
+  const today = new Date();
+
+  for (let i=0; i<totalCells; i++){
+    const dateObj = new Date(amYear, amMonth, 1 - firstWeekday + i);
+    const isCurrentMonth = dateObj.getMonth() === amMonth;
+
+    const cell = document.createElement("div");
+    cell.className = "am-day";
+    cell.textContent = dateObj.getDate();
+
+    if (!isCurrentMonth) cell.classList.add("off");
+
+    if (sameDay(dateObj, today)) cell.classList.add("today");
+
+    const key = ymdKey(dateObj);
+    if (selectedAbsenceDays.has(key)) cell.classList.add("sel");
+
+    // only allow click on current month days
+    if (isCurrentMonth){
+      cell.addEventListener("click", () => {
+        if (selectedAbsenceDays.has(key)) selectedAbsenceDays.delete(key);
+        else selectedAbsenceDays.add(key);
+        renderAbsenceCalendar();
+      });
+    }
+
+    amGrid.appendChild(cell);
+  }
+
+  const monthName = new Date(amYear, amMonth, 1).toLocaleString("en", { month: "long", year: "numeric" });
+  amMonthTitle.textContent = monthName;
+}
+
+amPrev.addEventListener("click", () => {
+  amMonth--;
+  if (amMonth < 0) { amMonth = 11; amYear--; }
+  renderAbsenceCalendar();
+});
+amNext.addEventListener("click", () => {
+  amMonth++;
+  if (amMonth > 11) { amMonth = 0; amYear++; }
+  renderAbsenceCalendar();
+});
+amToday.addEventListener("click", () => {
+  const now = new Date();
+  amMonth = now.getMonth();
+  amYear = now.getFullYear();
+  renderAbsenceCalendar();
+});
+amClearBtn.addEventListener("click", () => {
+  selectedAbsenceDays.clear();
+  renderAbsenceCalendar();
+});
+
+amSaveBtn.addEventListener("click", async () => {
+  amErr.textContent = "";
+
+  const canUse = isAdmin() || isTechnician();
+  if (!canUse) {
+    amErr.textContent = "No permission.";
+    return;
+  }
+
+  const technician = amTech.value;
+  if (!technician) {
+    amErr.textContent = "Select technician.";
+    return;
+  }
+
+  if (selectedAbsenceDays.size === 0) {
+    amErr.textContent = "Select at least one day.";
+    return;
+  }
+
+  const type = amType.value || "Vacation";
+  const note = (amNote.value || "").trim();
+
+  // Build dates sorted
+  const keys = Array.from(selectedAbsenceDays).sort(); // YYYY-MM-DD sorts naturally
+
+  // Conflict check: do not allow absence on a day with any booking (including tasks/other absences)
+  // If you want admin to override later, we can change this rule.
+  for (const k of keys) {
+    const [yy, mm, dd] = k.split("-").map(Number);
+    const day = new Date(yy, mm-1, dd);
+    const sDay = startOfDayLocal(day);
+    const eDay = endOfDayLocal(day);
+
+    const conflict = bookings.find((b) => {
+      if (b.technician !== technician) return false;
+      const s = b.start.toDate();
+      const e = b.end.toDate();
+      return overlaps(sDay, eDay, s, e);
+    });
+
+    if (conflict) {
+      amErr.textContent = `Conflict: ${technician} already has a booking on ${k}. Remove/move it first.`;
+      return;
+    }
+  }
+
+  try {
+    const batch = writeBatch(db);
+
+    keys.forEach((k) => {
+      const [yy, mm, dd] = k.split("-").map(Number);
+      const day = new Date(yy, mm-1, dd);
+      const sDay = startOfDayLocal(day);
+      const eDay = endOfDayLocal(day);
+
+      const ref = doc(bookingsCol); // auto-id
+      batch.set(ref, {
+        technician,
+        task: `ABSENCE – ${type}${note ? ` – ${note}` : ""}`,
+        start: Timestamp.fromDate(sDay),
+        end: Timestamp.fromDate(eDay),
+        createdAt: Timestamp.now(),
+
+        createdByEmail: currentEmail,
+        createdByUid: currentUid,
+        createdByDisplayName: currentProfile?.displayName || currentEmail,
+
+        kind: "absence",
+        absenceType: type,
+        absenceNote: note,
+        allDay: true
+      });
+    });
+
+    await batch.commit();
+    closeAbsenceModal();
+  } catch (err) {
+    console.error(err);
+    amErr.textContent = "Save failed (permissions or network).";
+  }
+});
+
+   
   function technicianClass(name) {
     const n = (name || "").toLowerCase();
     if (n === "sasi") return "sasi";
@@ -1295,6 +1659,10 @@ if (!bookingPassesFilter(b)) return false;
         const pill = document.createElement("div");
         pill.className = "pill " + technicianClass(b.technician);
 
+        const isAbsence = (b.kind === "absence");
+if (isAbsence) pill.classList.add("absence");
+
+
         const timeLabel = sameDay(s, e)
           ? `${s.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}-${e.toLocaleTimeString([], {
               hour: "2-digit",
@@ -1309,33 +1677,47 @@ const isMyFilter = (currentFilterTechnician === "MY");
 const isTechMyView = isMyFilter && isTechnician();               // technician: MY = assigned to me
 const isCreatorMyView = isMyFilter && !isTechnician();           // researcher/admin: MY = created by me
 
-if (isTechMyView) {
-  // Technician: show only their own assignments → no need to repeat technician name
- pill.classList.add("my-only");
-pill.innerHTML = `
-  <div class="t">${(b.task || "assignment")}</div>
-  <div class="tm">${timeLabel}</div>
-`;
 
+if (isAbsence) {
+  const type = b.absenceType || "Absence";
 
-  // duration-based height (optional)
-  const durH = (e - s) / (1000 * 60 * 60);
-  pill.classList.remove("dur-1", "dur-3", "dur-6");
-  if (durH <= 1.5) pill.classList.add("dur-1");
-  else if (durH <= 3.5) pill.classList.add("dur-3");
-  else pill.classList.add("dur-6");
-
-} else if (isCreatorMyView) {
-  // Researcher/Admin: show assignments I created → MUST show technician name
-  pill.textContent = `${b.technician}: ${b.task || "assignment"} – ${timeLabel}`;
-  pill.classList.add("my-only");
-  pill.classList.remove("dur-1", "dur-3", "dur-6");
+  if (isTechMyView) {
+    pill.classList.add("my-only");
+    pill.innerHTML = `
+      <div class="t">Absence – ${type}</div>
+      <div class="tm">All day</div>
+    `;
+  } else {
+    pill.textContent = `${b.technician}: Absence – ${type}`;
+  }
 
 } else {
-  // ALL or specific technician filter
-  pill.textContent = `${b.technician}: ${b.task || "assignment"} (${timeLabel})`;
-  pill.classList.remove("my-only", "dur-1", "dur-3", "dur-6");
+  // NORMAL ASSIGNMENTS (only when NOT absence)
+  if (isTechMyView) {
+    pill.classList.add("my-only");
+    pill.innerHTML = `
+      <div class="t">${(b.task || "assignment")}</div>
+      <div class="tm">${timeLabel}</div>
+    `;
+
+    const durH = (e - s) / (1000 * 60 * 60);
+    pill.classList.remove("dur-1", "dur-3", "dur-6");
+    if (durH <= 1.5) pill.classList.add("dur-1");
+    else if (durH <= 3.5) pill.classList.add("dur-3");
+    else pill.classList.add("dur-6");
+
+  } else if (isCreatorMyView) {
+    pill.textContent = `${b.technician}: ${b.task || "assignment"} – ${timeLabel}`;
+    pill.classList.add("my-only");
+    pill.classList.remove("dur-1", "dur-3", "dur-6");
+
+  } else {
+    pill.textContent = `${b.technician}: ${b.task || "assignment"} (${timeLabel})`;
+    pill.classList.remove("my-only", "dur-1", "dur-3", "dur-6");
+  }
 }
+
+
 
 
 
@@ -1650,6 +2032,14 @@ if (isTechnician()) {
   technicianSelect.disabled = false;
 }
 
+    // Absence button visible for: ADMIN + TECHNICIAN (NOT researcher)
+if (isAdmin() || isTechnician()) {
+  addAbsenceBtn.style.display = "inline-flex";
+} else {
+  addAbsenceBtn.style.display = "none";
+}
+
+
 // FILTER (role-specific options)
 filterContainer.style.display = "block";
 buildFilterOptionsForRole();
@@ -1662,7 +2052,7 @@ technicianFilter.value = "ALL";
     resetFormToNew();
 
   
-    resetFormToNew();
+
 
     // Subscribe (ALL bookings for everyone; filtering happens in UI)
     const qBookings = query(bookingsCol, orderBy("start"));
@@ -1701,6 +2091,7 @@ technicianFilter.value = "ALL";
   
 </body>
 </html>
+
 
 
 
