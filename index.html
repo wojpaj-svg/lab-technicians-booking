@@ -414,18 +414,20 @@
   } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
   import {
-    getFirestore,
-    collection,
-    addDoc,
-    onSnapshot,
-    query,
-    orderBy,
-    Timestamp,
-    doc,
-    deleteDoc,
-    updateDoc,
-    getDoc
-  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  where,
+  Timestamp,
+  doc,
+  deleteDoc,
+  updateDoc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
 
   // -------------------------
   // Firebase init
@@ -1207,20 +1209,32 @@ const technicianFilter = document.getElementById("technicianFilter");
 
     resetFormToNew();
 
-    // Subscribe
-    const qBookings = query(bookingsCol, orderBy("start"));
-    unsubscribeBookings = onSnapshot(qBookings, (snapshot) => {
-      bookings = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      }));
-      renderCalendar();
-      renderBookingsList();
+   // Subscribe (RULES SAFE)
+let qBookings;
 
-      if (editingBookingId && !bookings.find((b) => b.id === editingBookingId)) {
-        resetFormToNew();
-      }
-    });
+if (isTechnician()) {
+  qBookings = query(
+    bookingsCol,
+    where("technician", "==", currentProfile.technicianName),
+    orderBy("start")
+  );
+} else {
+  qBookings = query(bookingsCol, orderBy("start"));
+}
+
+unsubscribeBookings = onSnapshot(qBookings, (snapshot) => {
+  bookings = snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
+  }));
+  renderCalendar();
+  renderBookingsList();
+
+  if (editingBookingId && !bookings.find((b) => b.id === editingBookingId)) {
+    resetFormToNew();
+  }
+});
+
   });
 
   // initial UI
@@ -1234,6 +1248,7 @@ const technicianFilter = document.getElementById("technicianFilter");
   
 </body>
 </html>
+
 
 
 
