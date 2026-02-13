@@ -1232,7 +1232,12 @@ bmSaveBtn.addEventListener("click", async () => {
               day: "2-digit"
             })}`;
 
-        pill.textContent = `${b.technician}: ${b.task || "assignment"} (${timeLabel})`;
+       if (isTechnician()) {
+  pill.textContent = `${b.task || "assignment"} (${timeLabel})`;
+} else {
+  pill.textContent = `${b.technician}: ${b.task || "assignment"} (${timeLabel})`;
+}
+
 
         const createdLabel = b.createdByDisplayName || b.createdByEmail || b.createdBy || "unknown";
         pill.title =
@@ -1599,6 +1604,7 @@ unsubscribeBookings = onSnapshot(qBookings, (snapshot) => {
   
 </body>
 </html>
+
 
 
 
