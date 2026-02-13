@@ -265,6 +265,16 @@
       overflow: hidden;
       border: 1px solid rgba(15,23,42,0.08);
     }
+/* Bigger pills when showing only my assignments */
+.pill.my-only {
+  padding: 4px 8px;
+  font-size: 11px;
+  white-space: normal;     /* allow 2 lines */
+  line-height: 1.15;
+  max-height: 2.6em;       /* ~2 lines */
+}
+
+    
     .pill.sasi { background: var(--sasi); }
     .pill.viviana { background: var(--viviana); }
     .pill.simon { background: var(--simon); }
@@ -419,15 +429,17 @@
     <div class="card">
       <div class="calendar-header">
 <div id="filterContainer" style="margin-bottom:8px; display:none;">
-  <select id="technicianFilter" style="padding:6px 8px; border-radius:8px; border:1px solid #d5dde8; font-size:12px;">
-    <option value="ALL">All technicians</option>
-    <option value="Sasi">Sasi</option>
-    <option value="Viviana">Viviana</option>
-    <option value="Simon">Simon</option>
-    <option value="Lara">Lara</option>
-    <option value="Stefanija">Stefanija</option>
-    <option value="Klara">Klara</option>
-  </select>
+<select id="technicianFilter" style="padding:6px 8px; border-radius:8px; border:1px solid #d5dde8; font-size:12px;">
+  <option value="ALL">All technicians</option>
+  <option value="MY">Show only my assignments</option>
+  <option value="Sasi">Sasi</option>
+  <option value="Viviana">Viviana</option>
+  <option value="Simon">Simon</option>
+  <option value="Lara">Lara</option>
+  <option value="Stefanija">Stefanija</option>
+  <option value="Klara">Klara</option>
+</select>
+
 </div>
 
 
@@ -952,6 +964,17 @@ function setModalEditMode(on) {
   let bookings = []; // docs
    let currentFilterTechnician = "ALL";
 
+function bookingPassesFilter(b) {
+  if (currentFilterTechnician === "ALL") return true;
+
+  if (currentFilterTechnician === "MY") {
+    return b.technician === currentProfile?.technicianName;
+  }
+
+  return b.technician === currentFilterTechnician;
+}
+
+   
   let editingBookingId = null;
 
   // Permissions for UI actions
@@ -1188,14 +1211,9 @@ bmSaveBtn.addEventListener("click", async () => {
      const dayBookings = bookings
   .filter((b) => {
 
-    // FILTER BY ROLE
-    if (isTechnician()) {
-      if (b.technician !== currentProfile?.technicianName) return false;
-    } else {
-      if (currentFilterTechnician !== "ALL" && b.technician !== currentFilterTechnician) {
-        return false;
-      }
-    }
+  // FILTER (ALL / MY / single technician)
+if (!bookingPassesFilter(b)) return false;
+
 
     const s = b.start.toDate();
     const e = b.end.toDate();
@@ -1232,11 +1250,16 @@ bmSaveBtn.addEventListener("click", async () => {
               day: "2-digit"
             })}`;
 
-       if (isTechnician()) {
+ const isMyOnly = (currentFilterTechnician === "MY");
+
+if (isMyOnly) {
   pill.textContent = `${b.task || "assignment"} (${timeLabel})`;
+  pill.classList.add("my-only");
 } else {
   pill.textContent = `${b.technician}: ${b.task || "assignment"} (${timeLabel})`;
+  pill.classList.remove("my-only");
 }
+
 
 
         const createdLabel = b.createdByDisplayName || b.createdByEmail || b.createdBy || "unknown";
@@ -1271,13 +1294,8 @@ bmSaveBtn.addEventListener("click", async () => {
    const monthBookings = bookings
   .filter((b) => {
 
-    if (isTechnician()) {
-      if (b.technician !== currentProfile?.technicianName) return false;
-    } else {
-      if (currentFilterTechnician !== "ALL" && b.technician !== currentFilterTechnician) {
-        return false;
-      }
-    }
+   if (!bookingPassesFilter(b)) return false;
+
 
     const s = b.start.toDate();
     return s >= monthStart && s < monthEnd;
@@ -1546,43 +1564,37 @@ bmSaveBtn.addEventListener("click", async () => {
     userLabelEl.textContent = currentProfile.displayName || (user.email || "User");
 
     // Lock technician select if technician role
-   if (isTechnician()) {
+ if (isTechnician()) {
   technicianSelect.value = currentProfile?.technicianName || TECHNICIANS[0];
   technicianSelect.disabled = true;
 
-  // TECHNICIAN: tylko swoje
-  filterContainer.style.display = "none";
-  currentFilterTechnician = currentProfile?.technicianName;
+  // Technician also gets the filter
+  filterContainer.style.display = "block";
+  currentFilterTechnician = "ALL";
+  technicianFilter.value = "ALL";
 
 } else {
   technicianSelect.disabled = false;
 
-  // ADMIN / RESEARCHER
   filterContainer.style.display = "block";
   currentFilterTechnician = "ALL";
+  technicianFilter.value = "ALL";
 }
+
 
 
     resetFormToNew();
 
-   // Subscribe (RULES SAFE)
-let qBookings;
-
-if (isTechnician()) {
-  qBookings = query(
-    bookingsCol,
-    where("technician", "==", currentProfile.technicianName),
-    orderBy("start")
-  );
-} else {
-  qBookings = query(bookingsCol, orderBy("start"));
-}
+  
+// Subscribe (ALL bookings for everyone; filtering happens in UI)
+const qBookings = query(bookingsCol, orderBy("start"));
 
 unsubscribeBookings = onSnapshot(qBookings, (snapshot) => {
   bookings = snapshot.docs.map((docSnap) => ({
     id: docSnap.id,
     ...docSnap.data()
   }));
+
   renderCalendar();
   renderBookingsList();
 
@@ -1591,7 +1603,8 @@ unsubscribeBookings = onSnapshot(qBookings, (snapshot) => {
   }
 });
 
-  });
+
+  
 
   // initial UI
   setDefaultDateTimeInputs();
@@ -1604,6 +1617,7 @@ unsubscribeBookings = onSnapshot(qBookings, (snapshot) => {
   
 </body>
 </html>
+
 
 
 
